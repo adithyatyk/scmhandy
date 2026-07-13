@@ -26,10 +26,11 @@ def _fetch_staff():
     conn = None
 
     try:
+        
         conn = get_connection()
 
         cursor = conn.cursor()
-
+        
         cursor.execute(_default_worker_query())
 
         rows = cursor.fetchall()

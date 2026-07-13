@@ -113,7 +113,7 @@ const submitPassword = async () => {
       router.push({
         path: "/ht0020",
         query: {
-          workerCode: code
+          Code: code
         }
       })
 

@@ -3,8 +3,8 @@ const router = useRouter()
 const route = useRoute()
 const errorMessage = ref("")
 
-const workerCode = (route.query.workerCode as string) || ""
-console.log("Worker Code:", workerCode)
+const code = (route.query.code as string) || ""
+console.log("Code:", code)
 
 const handleExit = () => {
   router.push("/ht0010")
@@ -14,7 +14,7 @@ const handleHT0100 = () => {
   router.push({
         path: "/ht0100",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -23,7 +23,7 @@ const handleHT0200 = () => {
   router.push({
         path: "/ht0200",
         query: {
-          workerCode 
+          codeorkerCode 
         }
       })
 }
@@ -32,7 +32,7 @@ const handleHT0400 = () => {
   router.push({
         path: "/ht0400",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -41,7 +41,7 @@ const handleHT0500 = () => {
   router.push({
         path: "/ht0500",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -50,7 +50,7 @@ const handleHT0600 = () => {
   router.push({
         path: "/ht0600",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -59,7 +59,7 @@ const handleHT0700 = () => {
   router.push({
         path: "/ht0700",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -68,7 +68,7 @@ const handleHT0800 = () => {
   router.push({
         path: "/ht0800",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -77,7 +77,7 @@ const handleHT0900 = () => {
   router.push({
         path: "/ht0900",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -86,7 +86,7 @@ const handleHT1000 = () => {
   router.push({
         path: "/ht1000",
         query: {
-          workerCode 
+          code 
         }
       })
 }
@@ -95,7 +95,7 @@ const handleHT1100 = () => {
   router.push({
         path: "/ht1100",
         query: {
-          workerCode 
+          code 
         }
       })
 }

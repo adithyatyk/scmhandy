@@ -7,7 +7,7 @@ const router = useRouter()
 const route = useRoute()
 
 // Parameters
-const workerCode = (route.query.workerCode as string) || ""
+const code = (route.query.code as string) || ""
 const inventoryFlag = (route.query.inventoryFlag as string) || ""
 
 // Screen title
@@ -67,7 +67,7 @@ const handleDelete = () => {
 const handleDeleteTemp = () => {
   clearMsg()
 
-  confirmMessage.value = getMessage("Q204", workerCode)
+  confirmMessage.value = getMessage("Q204", code)
   showConfirm.value = true
 }
 
@@ -91,7 +91,7 @@ const handleOk = async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        workerCode,
+        code,
       }),
     })
 
@@ -101,7 +101,7 @@ const handleOk = async () => {
       if (data.success) {
         showMsg(getMessage("I202"), "info")
       } else {
-        showMsg(getMessage("I203"), "workerCode")
+        showMsg(getMessage("I203"), "code")
       }
     } else {
       showMsg(getMessage("E225"), "error")
@@ -118,7 +118,7 @@ const handleBack = () => {
   router.push({
     path: "/ht0020",
     query: {
-      workerCode,
+      code,
       inventoryFlag,
     },
   })
