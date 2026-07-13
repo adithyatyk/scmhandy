@@ -118,8 +118,7 @@ const handleBack = () => {
   router.push({
     path: "/ht0020",
     query: {
-      code,
-      inventoryFlag,
+      code,      
     },
   })
 }
@@ -148,6 +147,10 @@ const handleKeyDown = (event: KeyboardEvent) => {
 }
 
 onMounted(() => {
+  console.log(route.query)
+  console.log("code =", code)
+  console.log("inventoryFlag =", inventoryFlag)
+
   window.addEventListener("keydown", handleKeyDown)
 })
 
