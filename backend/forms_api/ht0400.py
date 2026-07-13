@@ -1,6 +1,6 @@
 from .as400 import get_connection
 
-def delete_temp_data(worker_code: str):
+def delete_temp_data(code: str):
     conn = None
     cursor = None
 
@@ -15,9 +15,9 @@ def delete_temp_data(worker_code: str):
         """
 
         print(sql)
-        print("Parameter:", worker_code)
+        print("Parameter:", code)
 
-        cursor.execute(sql, [str(worker_code)])
+        cursor.execute(sql, [str(code)])
 
         rows = cursor.rowcount
         print("Rows deleted:", rows)
