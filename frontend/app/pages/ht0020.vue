@@ -14,7 +14,7 @@ const handleHT0100 = () => {
   router.push({
         path: "/ht0100",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -23,7 +23,7 @@ const handleHT0200 = () => {
   router.push({
         path: "/ht0200",
         query: {
-          code 
+          Code: code
         }
       })
 }
@@ -32,7 +32,7 @@ const handleHT0400 = () => {
   router.push({
         path: "/ht0400",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -41,7 +41,7 @@ const handleHT0500 = () => {
   router.push({
         path: "/ht0500",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -50,7 +50,7 @@ const handleHT0600 = () => {
   router.push({
         path: "/ht0600",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -59,7 +59,7 @@ const handleHT0700 = () => {
   router.push({
         path: "/ht0700",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -68,7 +68,7 @@ const handleHT0800 = () => {
   router.push({
         path: "/ht0800",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -77,7 +77,7 @@ const handleHT0900 = () => {
   router.push({
         path: "/ht0900",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -86,7 +86,7 @@ const handleHT1000 = () => {
   router.push({
         path: "/ht1000",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -95,7 +95,7 @@ const handleHT1100 = () => {
   router.push({
         path: "/ht1100",
         query: {
-          code 
+          Code: code 
         }
       })
 }
@@ -195,63 +195,63 @@ onUnmounted(() => {
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht0200')"
+          @click="handleHT0200"
         >
           2. 出荷前検品
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht0400')"
+          @click="handleHT0400"
         >
           3. 棚卸　完成品
         </button>
 
         <button
           class="menu-btn"
-          @click="router.push('/ht0500')"
+          @click="handleHT0500"
         >
           4. 棚卸　立会い
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht0600')"
+          @click="handleHT0600"
         >
           5. 外注品その他処理
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht0700')"
+          @click="handleHT0700"
         >
           6. 出荷取消
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht0800')"
+          @click="handleHT0800"
         >
           7. 納入先返品受入
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht0900')"
+          @click="handleHT0900"
         >
           8. 得意先返品
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht1000')"
+          @click="handleHT1000"
         >
           9. メーカー返品
         </button>
 
         <button 
           class="menu-btn"
-          @click="router.push('/ht1100')"
+          @click="handleHT1100"
         >
           10. 廃却
         </button>
