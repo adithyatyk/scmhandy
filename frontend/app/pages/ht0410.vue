@@ -12,7 +12,7 @@ const apiBaseUrl = config.public.apiBaseUrl
    PARAMETERS
 ========================= */
 
-const workerCode = (route.query.workerCode as string) || ""
+const code = (route.query.code as string) || ""
 const inventoryFlag = (route.query.inventoryFlag as string) || ""
 const mode = (route.query.mode as string) || "Input"
 
@@ -97,7 +97,7 @@ const handleBack = () => {
 
     query: {
 
-      workerCode,
+      code,
 
       inventoryFlag
 
@@ -286,7 +286,7 @@ const loadCount = async () => {
 
         body: {
 
-          workerCode,
+          code,
 
           warehouseCode: selectedWarehouseCode.value,
 
@@ -330,7 +330,7 @@ const loadSerial = async () => {
 
         body: {
 
-          workerCode,
+          code,
 
           warehouseCode: selectedWarehouseCode.value,
 
@@ -406,7 +406,7 @@ const loadDetailList = async () => {
 
         body: {
 
-          workerCode,
+          code,
 
           warehouseCode: selectedWarehouseCode.value,
 
@@ -472,7 +472,7 @@ const handleEnter = async () => {
 
         body: {
 
-          workerCode,
+          code,
 
           inventoryFlag,
 
@@ -636,11 +636,11 @@ const handleEnter = async () => {
                   Material
                 </th>
 
-                <th style="width:30%">
+                <th style="width:10%">
                   sign
                 </th>
 
-                <th style="width:30%">
+                <th style="width:10%">
                   quantity
                 </th>
 
@@ -676,28 +676,28 @@ const handleEnter = async () => {
           class="btn-back"
           @click="handleBack"
         >
-          F1 Back
+          F1 戻る
         </button>
 
         <button
           class="btn-blue"
           @click="handleQR"
         >
-          Go to F2
+          F2 QRへ
         </button>
 
         <button
           class="btn-green"
           @click="handleList"
         >
-          Go to F3
+          F3 ﾘｽﾄへ
         </button>
 
         <button
           class="btn-next"
           @click="handleClear"
         >
-          F4 Clear
+          F4 クリア
         </button>
 
       </div>
