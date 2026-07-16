@@ -4,7 +4,7 @@ const route = useRoute()
 const errorMessage = ref("")
 
 const code = (route.query.code as string) || ""
-console.log("Code:", code)
+console.log("code:", code)
 
 const handleExit = () => {
   router.push("/ht0010")
@@ -14,8 +14,8 @@ const handleHT0100 = () => {
   router.push({
         path: "/ht0100",
         query: {
-          Code: code 
-        }
+          code: code
+      }
       })
 }
 
@@ -23,8 +23,8 @@ const handleHT0200 = () => {
   router.push({
         path: "/ht0200",
         query: {
-          Code: code
-        }
+          code:code
+      }
       })
 }
 
@@ -32,7 +32,8 @@ const handleHT0400 = () => {
   router.push({
         path: "/ht0400",
         query: {
-          Code: code 
+          code: code,
+          inventoryFlg: "完成品"
         }
       })
 }
@@ -41,7 +42,8 @@ const handleHT0500 = () => {
   router.push({
         path: "/ht0500",
         query: {
-          Code: code 
+          code: code,
+          inventoryFlg: "立会い"
         }
       })
 }
@@ -50,7 +52,7 @@ const handleHT0600 = () => {
   router.push({
         path: "/ht0600",
         query: {
-          Code: code 
+          code: code
         }
       })
 }
@@ -59,7 +61,7 @@ const handleHT0700 = () => {
   router.push({
         path: "/ht0700",
         query: {
-          Code: code 
+          code: code
         }
       })
 }
@@ -68,7 +70,7 @@ const handleHT0800 = () => {
   router.push({
         path: "/ht0800",
         query: {
-          Code: code 
+          code: code
         }
       })
 }
@@ -77,7 +79,7 @@ const handleHT0900 = () => {
   router.push({
         path: "/ht0900",
         query: {
-          Code: code 
+          code: code
         }
       })
 }
@@ -86,7 +88,7 @@ const handleHT1000 = () => {
   router.push({
         path: "/ht1000",
         query: {
-          Code: code 
+          code: code
         }
       })
 }
@@ -95,7 +97,7 @@ const handleHT1100 = () => {
   router.push({
         path: "/ht1100",
         query: {
-          Code: code 
+          code: code
         }
       })
 }
@@ -188,7 +190,7 @@ onUnmounted(() => {
       <main class="body">
         <button
           class="menu-btn"
-          @click="router.push('/ht0100')"
+          @click="handleHT0100"
         >
           1. 外注品受入
         </button>

@@ -3,6 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 from .as400 import get_connection
 from .ht0010 import fetch_staff_rows
 from .ht0400 import delete_temp_data
+from .ht0410 import get_warehouse_list
+from .ht0410 import get_read_count
+from .ht0410 import validate_scan
 
 @csrf_exempt
 def form_data(request):
@@ -185,7 +188,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM TYKSFLIB.MSTAFF
+        FROM ADITHYA1.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -219,4 +222,117 @@ def delete_temp(request):
 
         return JsonResponse({
             "success": success
+        })
+        
+@csrf_exempt
+def warehouse_list(request):
+
+    if request.method == "OPTIONS":
+
+        response = JsonResponse({}, status=204)
+
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+
+        return response
+
+    if request.method == "GET":
+
+        rows = get_warehouse_list()
+
+        response = JsonResponse({
+            "success": len(rows) > 0,
+            "rows": rows
+        })
+
+        response["Access-Control-Allow-Origin"] = "*"
+
+        return response
+
+    response = JsonResponse({
+        "success": False,
+        "message": "Method not allowed"
+    }, status=405)
+
+    response["Access-Control-Allow-Origin"] = "*"
+
+    return response
+
+@csrf_exempt
+def read_count(request):
+
+    if request.method == "POST":
+
+        data = json.loads(request.body or "{}")
+
+        worker_code = data.get("code")
+        warehouse_code = data.get("warehouseCode")
+
+        count = get_read_count(worker_code, warehouse_code)
+
+        return JsonResponse({
+            "success": True,
+            "count": count
+        })
+
+    return JsonResponse({
+        "success": False
+    })    
+@csrf_exempt
+def serial_no(request):
+
+    if request.method == "POST":
+
+        data = json.loads(request.body or "{}")
+
+        worker_code = data.get("code")
+        warehouse_code = data.get("warehouseCode")
+
+        serial = get_serial_no(worker_code, warehouse_code)
+
+        return JsonResponse({
+            "success": True,
+            "serial": serial
+        })
+
+    return JsonResponse({
+        "success": False
+    })    
+@csrf_exempt
+def scan_qr(request):
+
+    if request.method == "POST":
+
+        data = json.loads(request.body or "{}")
+
+        qr_code = data.get("qrCode", "").strip()
+        mode = data.get("mode", "").strip()
+
+        # Input mode only
+        if mode == "入力":
+
+            # 1. Duplicate check
+            if check_duplicate_qr(qr_code):
+                return JsonResponse({
+                    "success": False,
+                    "code": "E214"
+                })
+
+            # 2. First character check
+            if len(qr_code) == 0 or qr_code[0] not in ["T", "G", "F"]:
+                return JsonResponse({
+                    "success": False,
+                    "code": "E220"
+                })
+
+            # 3. Shipment check (later)
+            # if not check_shipment(...):
+            #     return JsonResponse({
+            #         "success": False,
+            #         "code": "E226"
+            #     })
+
+        return JsonResponse({
+            "success": True
         })

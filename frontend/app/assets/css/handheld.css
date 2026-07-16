@@ -183,14 +183,14 @@ thead{
 }
 
 th{
-  padding:8px;
+  padding:6px;
   text-align:left;
-  font-size:14px;
+  font-size:18px;
   border:1px solid #666;
 }
 
 td{
-  padding:10px;
+  padding:6px;
   font-size:20px;
   border:1px solid #666;
 }
@@ -418,6 +418,7 @@ tbody tr.selected td{
 
 .ht0410-container{
     padding:8px;
+    height:580px;
 }
 
 .warehouse-title{
@@ -430,6 +431,74 @@ tbody tr.selected td{
     width:100%;
     height:235px;
     font-size:22px;
+}
+
+.list-box{
+    width:100%;
+    border:1px solid #666;
+    background:#fff;
+    overflow:hidden;
+}
+
+.warehouse-box{
+    height:200px;
+    overflow-y:auto;
+}
+
+.warehouse-box table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+}
+
+.warehouse-box thead th{
+    position:sticky;
+    top:0;
+    height:18px;
+    background:#d6d6d6;
+    border:1px solid #666;
+    font-size:22px;
+    font-weight:bold;
+    text-align:left;
+    z-index:1;
+}
+
+.warehouse-box tbody td{
+    height:18px;
+    border:1px solid #666;
+    font-size:18px;
+    text-align:left;
+    cursor:pointer;
+    background:#fff;
+}
+
+.warehouse-box tbody tr:hover td{
+    background:#e8f1ff;
+}
+
+.warehouse-box tbody tr.selected td{
+    background:#ffd800;
+    color:#161515;
+    font-weight:bold;
+}
+
+/* Grey Scrollbar */
+.warehouse-box::-webkit-scrollbar{
+    width:18px;
+}
+
+.warehouse-box::-webkit-scrollbar-track{
+    background:#d9d9d9;
+}
+
+.warehouse-box::-webkit-scrollbar-thumb{
+    background:#888;
+    border-radius:8px;
+    border:2px solid #d9d9d9;
+}
+
+.warehouse-box::-webkit-scrollbar-thumb:hover{
+    background:#666;
 }
 
 .scan-row{
@@ -466,17 +535,25 @@ tbody tr.selected td{
     font-size:20px;
 }
 
-.label1{width:110px;}
-.value1{width:140px;}
+.label1{width:85px;}
+.value1{width:150px;
+    text-align:right;
+}
 
-.label2{width:150px;}
+.colon{
+    width:20px;
+    text-align:center;
+}
+
+.label2{width:85px;}
 .value2{
-    width:60px;
+    width:80px;
     text-align:right;
 }
 
 .label3{
-    margin-left:20px;
+    margin-left:60px;
+    width:45px;
 }
 
 .value3{
@@ -486,25 +563,100 @@ tbody tr.selected td{
 
 .ht0410-buttons{
     position:absolute;
-    bottom:50px;
+    bottom:60px;
     left:0;
     width:100%;
+    gap:6px;          
+    padding:0 7px;
+    width:465px; 
     display:flex;
 }
 
 .ht0410-buttons button{
     flex:1;
     height:50px;
+    font-size:20px;
+    font-weight:900;
+    cursor:pointer;
+    border-radius:0;
 }
 
 .btn-blue{
     background:#3d85c6;
     color:#fff;
     border:2px solid #1f4e79;
+    box-shadow:0 3px 0 #1f4e79;
 }
 
 .btn-green{
     background:#6aa84f;
     color:#fff;
     border:2px solid #38761d;
+    box-shadow:0 3px 0 #38761d;
+}
+
+.material-box{
+  height:190px;
+  overflow:auto;
+  border:1px solid #777;
+  background:#fff
+}
+
+/* Grey Scrollbar */
+.material-box::-webkit-scrollbar{
+    width:18px;
+}
+
+.material-box::-webkit-scrollbar-track{
+    background:#d9d9d9;
+}
+
+.material-box::-webkit-scrollbar-thumb{
+    background:#888;
+    border-radius:8px;
+    border:2px solid #d9d9d9;
+}
+
+.material-box::-webkit-scrollbar-thumb:hover{
+    background:#666;
+}
+
+.qr-message-row{
+    display:flex;
+    align-items:center;
+    margin-top:8px;
+    margin-bottom:4px;
+}
+
+.qr-label{
+    flex:1;
+    text-align:center;
+    font-size:18px;
+    font-weight:bold;
+    color:#000;
+}
+
+.cancel-btn{
+    width:110px;
+    height:50px;
+    font-size:20px;
+    font-weight:900;
+    cursor:pointer;
+    border-radius:0;
+
+    background:#e69138;      /* Orange */
+    color:#fff;
+    border:2px solid #b45f06; /* Dark orange border */
+    box-shadow:0 3px 0 #783f04; /* Dark orange shadow */
+}
+
+.cancel-btn:active{
+    transform:translateY(2px);
+    box-shadow:0 1px 0 #783f04;
+}
+ 
+.cancel-placeholder{
+    width:90px;
+    height:44px;   /* same as cancel button */
+    flex-shrink:0;
 }

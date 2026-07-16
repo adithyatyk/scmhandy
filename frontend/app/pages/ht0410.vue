@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue"
+import { ref, computed, nextTick, onMounted, onUnmounted } from "vue"
 import { getMessage } from "@/utils/getMessage"
 
 const router = useRouter()
@@ -15,6 +15,9 @@ const apiBaseUrl = config.public.apiBaseUrl
 const code = (route.query.code as string) || ""
 const inventoryFlag = (route.query.inventoryFlag as string) || ""
 const mode = (route.query.mode as string) || "Input"
+console.log("Route Query:", route.query)
+console.log("code:", code)
+
 
 /* =========================
    SCREEN TITLE
@@ -31,8 +34,8 @@ const title = computed(() => {
   }
 
   return mode === "Delete"
-    ? "【棚卸】削除"
-    : "【棚卸】読取"
+    ? "【棚卸 完成品】削除"
+    : "【棚卸 完成品】読取"
 
 })
 
@@ -40,22 +43,21 @@ const title = computed(() => {
    REFS
 ========================= */
 
-const warehouseRef = ref<HTMLSelectElement | null>(null)
+const tableRef = ref<HTMLElement | null>(null)
 const qrInput = ref<HTMLInputElement | null>(null)
 
 /* =========================
    VARIABLES
 ========================= */
 
-const warehouseList = ref<
-{
+type WarehouseRow = {
   code: string
   name: string
-}[]
->([])
+}
 
-const selectedWarehouse = ref("")
+const warehouseRows = ref<WarehouseRow[]>([])
 const selectedWarehouseCode = ref("")
+const selectedWarehouseName = ref("")
 
 const qrCode = ref("")
 
@@ -97,9 +99,9 @@ const handleBack = () => {
 
     query: {
 
-      code,
+      code: code,
 
-      inventoryFlag
+      inventoryFlag: "完成品"
 
     }
 
@@ -121,7 +123,7 @@ const handleQR = () => {
 
 const handleList = () => {
 
-  warehouseRef.value?.focus()
+  tableRef.value?.focus()
 
 }
 
@@ -136,9 +138,7 @@ const handleClear = () => {
   message.value = ""
 
   nextTick(() => {
-
-    qrInput.value?.focus()
-
+    tableRef.value?.focus()
   })
 
 }
@@ -196,16 +196,20 @@ onMounted(async () => {
 
   window.addEventListener("keydown", onKeyDown, true)
 
+  // 1. Load Warehouse Master
   await loadWarehouse()
 
+  // 3. Get number of pages read
   await loadCount()
 
+  // 4. Get Sequential Number
   await loadSerial()
 
+  //await loadDetailList()
   await loadDetailList()
 
   nextTick(() => {
-    qrInput.value?.focus()
+    tableRef.value?.focus()
   })
 
 })
@@ -230,32 +234,28 @@ const loadWarehouse = async () => {
 
     const response = await $fetch<{
       success: boolean
-      rows: {
-        code: string
-        name: string
-      }[]
+      code?: string
+      message?: string
     }>(
       `${apiBaseUrl}/api/ht0410/warehouse/`
     )
 
     if (response.success) {
 
-      warehouseList.value = response.rows
+    warehouseRows.value = response.rows
 
-      if (warehouseList.value.length > 0) {
+    if (warehouseRows.value.length > 0) {
 
-        selectedWarehouse.value = warehouseList.value[0].name
+        selectedWarehouseCode.value = warehouseRows.value[0].code
+        selectedWarehouseName.value = warehouseRows.value[0].name
 
-        selectedWarehouseCode.value = warehouseList.value[0].code
+    } else {
 
-      }
-
-    }
-    else {
-
-      errorMessage.value = getMessage("E203")
+        errorMessage.value = getMessage("E212", "倉庫名")
 
     }
+
+}
 
   }
   catch {
@@ -278,7 +278,7 @@ const loadCount = async () => {
 
     const response = await $fetch<{
       success: boolean
-      count: number
+      code?: string
     }>(
       `${apiBaseUrl}/api/ht0410/count/`,
       {
@@ -359,16 +359,10 @@ const loadSerial = async () => {
    WAREHOUSE CHANGED
 ========================= */
 
-watch(selectedWarehouse, async (value) => {
+const selectWarehouse = async (row: WarehouseRow) => {
 
-  const item = warehouseList.value.find(
-    x => x.name === value
-  )
-
-  if (!item)
-    return
-
-  selectedWarehouseCode.value = item.code
+  selectedWarehouseCode.value = row.code
+  selectedWarehouseName.value = row.name
 
   qrCode.value = ""
 
@@ -380,13 +374,13 @@ watch(selectedWarehouse, async (value) => {
 
   await loadSerial()
 
+  await loadDetailList()
+
   nextTick(() => {
-
     qrInput.value?.focus()
-
   })
 
-})
+}
 
 /* =========================
    LOAD DETAIL LIST
@@ -438,6 +432,9 @@ const loadDetailList = async () => {
 
 const handleEnter = async () => {
 
+  console.log("ENTER PRESSED")
+  console.log("QR:", qrCode.value)
+
   errorMessage.value = ""
 
   message.value = ""
@@ -463,28 +460,17 @@ const handleEnter = async () => {
   try {
 
     const response = await $fetch<{
-      success: boolean
-      message: string
+    success: boolean
+    code?: string
     }>(
-      `${apiBaseUrl}/api/ht0410/scan/`,
-      {
-        method: "POST",
-
-        body: {
-
-          code,
-
-          inventoryFlag,
-
-          warehouseCode: selectedWarehouseCode.value,
-
-          qrCode: qrCode.value,
-
-          mode
-
+        `${apiBaseUrl}/api/ht0410/scan/`,
+        {
+            method: "POST",
+            body: {
+                qrCode: qrCode.value,
+                mode
+            }
         }
-
-      }
     )
 
     if (response.success) {
@@ -497,7 +483,7 @@ const handleEnter = async () => {
 
       await loadDetailList()
 
-      message.value = response.message
+      message.value = "success"
 
       nextTick(() => {
 
@@ -508,12 +494,12 @@ const handleEnter = async () => {
     }
     else {
 
-      errorMessage.value = response.message
+      if (response.code) {
+        errorMessage.value = getMessage(response.code)
+      }
 
       nextTick(() => {
-
         qrInput.value?.focus()
-
       })
 
     }
@@ -546,44 +532,58 @@ const handleEnter = async () => {
       <div class="ht0410-container">
 
         <!-- Warehouse -->
-        <div class="warehouse-block">
+        <div
+  ref="tableRef"
+  class="list-box warehouse-box"
+  tabindex="0"
+>
+  <table>
 
-          <div class="warehouse-title">
-            倉庫名
-          </div>
+    <thead>
+      <tr>
+        <th>倉庫名</th>
+      </tr>
+    </thead>
 
-          <select
-            ref="warehouseRef"
-            v-model="selectedWarehouse"
-            class="warehouse-select"
-            size="8"
+    <tbody>
+      <tr
+        v-for="row in warehouseRows"
+        :key="row.code"
+        :class="{ selected: selectedWarehouseCode === row.code }"
+        @click="selectWarehouse(row)"
+      >
+        <td>{{ row.name }}</td>
+      </tr>
+    </tbody>
+
+  </table>
+</div>
+        <div class="qr-message-row">
+
+          <button
+            v-if="mode === '削除'"
+            class="cancel-btn"
           >
-            <option
-              v-for="item in warehouseList"
-              :key="item.code"
-              :value="item.name"
-            >
-              {{ item.name }}
-            </option>
-          </select>
+            取消
+          </button>
+          
+          <div
+            v-else
+            class="cancel-placeholder"
+          ></div>
+          <div class="qr-label">
+            QRをスキャンして下さい
+          </div>
 
         </div>
 
         <!-- Scan -->
-        <div class="scan-row">
-
-          <button
-            class="cancel-btn"
-            v-if="mode==='Delete'"
-          >
-            cancel
-          </button>
+        <div class="scan-row">          
 
           <input
             ref="qrInput"
             v-model="qrCode"
             class="scan-input"
-            placeholder="Please scan the QR code."
             @keyup.enter="handleEnter"
           >
 
@@ -592,39 +592,27 @@ const handleEnter = async () => {
         <!-- Warehouse -->
         <div class="info-row">
 
-          <span class="label1">
-            warehouse
-          </span>
-
-          <span class="value1">
-            {{ selectedWarehouse }}
-          </span>
+          <span class="label1">倉庫</span>
+          <span class="colon">：</span>
+          <span class="value1">{{ selectedWarehouseName }}</span>
 
         </div>
 
         <!-- Count -->
         <div class="count-row">
 
-          <span class="label2">
-            Number of paper
-          </span>
+          <span class="label2">読取枚数</span>
+          <span class="colon">：</span>
+          <span class="value2">{{ readCount }}</span>
 
-          <span class="value2">
-            {{ readCount }}
-          </span>
-
-          <span class="label3">
-            Sequential
-          </span>
-
-          <span class="value3">
-            {{ serialNo }}
-          </span>
+          <span class="label3">連番</span>
+          <span class="colon">：</span>
+          <span class="value3">{{ serialNo }}</span>
 
         </div>
 
         <!-- Table -->
-        <div class="table-box">
+        <div class="material-box">
 
           <table>
 
@@ -632,16 +620,16 @@ const handleEnter = async () => {
 
               <tr>
 
-                <th style="width:40%">
-                  Material
+                <th style="width:10%">
+                  材質
                 </th>
 
                 <th style="width:10%">
-                  sign
+                  符号
                 </th>
 
                 <th style="width:10%">
-                  quantity
+                  数量
                 </th>
 
               </tr>
@@ -704,7 +692,7 @@ const handleEnter = async () => {
 
       <!-- Error -->
       <footer
-        class="footer footer-error"
+        :class="errorMessage ? 'footer footer-error' : 'footer footer-normal'"
       >
         {{ statusLine }}
       </footer>

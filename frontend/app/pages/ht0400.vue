@@ -47,6 +47,7 @@ const handleInput = () => {
     path: "/ht0410",
     query: {
       mode: "入力",
+      code: code
     },
   })
 }
@@ -59,6 +60,7 @@ const handleDelete = () => {
     path: "/ht0410",
     query: {
       mode: "削除",
+      code: code
     },
   })
 }
