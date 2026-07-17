@@ -536,7 +536,7 @@ tbody tr.selected td{
 }
 
 .label1{width:85px;}
-.value1{width:150px;
+.value1{width:60px;
     text-align:right;
 }
 
@@ -547,17 +547,17 @@ tbody tr.selected td{
 
 .label2{width:85px;}
 .value2{
-    width:80px;
+    width:20px;
     text-align:right;
 }
 
 .label3{
-    margin-left:60px;
+    margin-left:120px;
     width:45px;
 }
 
 .value3{
-    width:60px;
+    width:20px;
     text-align:right;
 }
 

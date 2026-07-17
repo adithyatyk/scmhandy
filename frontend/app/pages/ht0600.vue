@@ -11,11 +11,11 @@
       </header>
 
       <div class="title">
-        Test_ht0600
+        【棚卸 完成品】入力
       </div>
 
       <main class="body">
-        <h2>HT0500</h2>
+        <h2>HT0600</h2>
         <p>Sample Page</p>
       </main>
 

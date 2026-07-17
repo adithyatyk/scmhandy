@@ -12,7 +12,7 @@ def get_warehouse_list():
             SELECT
                 STOCCD,
                 STOCNM
-            FROM ADITHYA1.MWAREHOUSE
+            FROM TYKSFLIB.MWAREHOUSE
             WHERE DELFLG = ' '
             ORDER BY STOCCD
         """
@@ -62,7 +62,7 @@ def get_read_count(worker_code: str, warehouse_code: str):
 
         sql = """
             SELECT COUNT(*)
-            FROM ADITHYA1.HTSTOCKTAK
+            FROM TYKSFLIB.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?
               AND DELFLG = ''           
@@ -98,7 +98,7 @@ def get_serial_no(worker_code: str, warehouse_code: str):
 
         sql = """
             SELECT MAX(SERNO)
-            FROM ADITHYA1.HTSTOCKTAK
+            FROM TYKSFLIB.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?                  
         """
@@ -141,7 +141,7 @@ def check_duplicate_qr(qr_code: str):
                 HTNM,
                 WAREHOUSCD,
                 SERNO
-            FROM ADITHYA1.HTSTOCKQR
+            FROM TYKSFLIB.HTSTOCKQR
             WHERE QR = ?
               AND TACIAIFLG = '0'
         """

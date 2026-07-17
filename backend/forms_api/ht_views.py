@@ -5,7 +5,8 @@ from .ht0010 import fetch_staff_rows
 from .ht0400 import delete_temp_data
 from .ht0410 import get_warehouse_list
 from .ht0410 import get_read_count
-from .ht0410 import validate_scan
+from .ht0410 import get_serial_no
+from .ht0410 import check_duplicate_qr
 
 @csrf_exempt
 def form_data(request):
@@ -188,7 +189,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM ADITHYA1.MSTAFF
+        FROM TYKSFLIB.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -216,9 +217,10 @@ def delete_temp(request):
 
         data = json.loads(request.body or "{}")
 
-        worker_code = data.get("workerCode")
+        worker_code = data.get("code")
+        inventory_flg = data.get("inventoryFlg")
 
-        success = delete_temp_data(worker_code)
+        success = delete_temp_data(worker_code, inventory_flg)
 
         return JsonResponse({
             "success": success

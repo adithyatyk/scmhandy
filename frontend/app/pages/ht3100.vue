@@ -11,12 +11,11 @@
       </header>
 
       <div class="title">
-        Test_ht0700
-        
+        Test_HT3100
       </div>
 
       <main class="body">
-        <h2>HT0500</h2>
+        <h2>HT3100</h2>
         <p>Sample Page</p>
       </main>
 

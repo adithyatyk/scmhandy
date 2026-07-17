@@ -8,14 +8,10 @@ const route = useRoute()
 
 // Parameters
 const code = (route.query.code as string) || ""
-const inventoryFlag = (route.query.inventoryFlag as string) || ""
+const inventoryFlg = (route.query.inventoryFlg as string) || ""
 
 // Screen title
-const title = computed(() =>
-  inventoryFlag === "supervisor"
-    ? "【棚卸 監督】メニュー"
-    : "【棚卸 完成品】メニュー"
-)
+const title = computed(() => `【棚卸 ${inventoryFlg}】メニュー`)
 
 // Footer message
 const lblMsg = ref("")
@@ -46,8 +42,8 @@ const handleInput = () => {
   router.push({
     path: "/ht0410",
     query: {
-      mode: "入力",
-      code: code
+      code: code,
+      mode: "入力"
     },
   })
 }
@@ -59,8 +55,8 @@ const handleDelete = () => {
   router.push({
     path: "/ht0410",
     query: {
-      mode: "削除",
-      code: code
+      code: code,
+      mode: "削除"
     },
   })
 }
@@ -94,6 +90,7 @@ const handleOk = async () => {
       },
       body: JSON.stringify({
         code,
+        inventoryFlg,
       }),
     })
 
@@ -151,7 +148,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
 onMounted(() => {
   console.log(route.query)
   console.log("code =", code)
-  console.log("inventoryFlag =", inventoryFlag)
+  console.log("inventoryFlg =", inventoryFlg)
 
   window.addEventListener("keydown", handleKeyDown)
 })
@@ -225,11 +222,11 @@ onUnmounted(() => {
 
           <div class="confirm-buttons">
             <button @click="handleOk">
-              オーケー
+              はい
             </button>
 
             <button @click="handleCancel">
-              取り消し
+              いいえ
             </button>
           </div>
 

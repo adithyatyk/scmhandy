@@ -101,7 +101,7 @@ const handleBack = () => {
 
       code: code,
 
-      inventoryFlag: "完成品"
+      inventoryFlag: "立会い"
 
     }
 
