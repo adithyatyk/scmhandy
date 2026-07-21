@@ -452,7 +452,6 @@ tbody tr.selected td{
 }
 
 .warehouse-box thead th{
-    position:sticky;
     top:0;
     height:18px;
     background:#d6d6d6;
@@ -536,7 +535,7 @@ tbody tr.selected td{
 }
 
 .label1{width:85px;}
-.value1{width:60px;
+.value1{width:70px;
     text-align:right;
 }
 

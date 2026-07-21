@@ -100,7 +100,7 @@ const handleOk = async () => {
       if (data.success) {
         showMsg(getMessage("I202"), "info")
       } else {
-        showMsg(getMessage("I203"), "code")
+        showMsg(getMessage("I203", code), "info")
       }
     } else {
       showMsg(getMessage("E225"), "error")

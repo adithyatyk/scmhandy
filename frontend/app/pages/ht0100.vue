@@ -14,11 +14,12 @@ const handleBack = () => {
   })
 }
 
-const handleNyuko = () => {
+const handleGoods = () => {
   router.push({
     path: "/ht0120",
     query: {
-      code
+      code,
+      inboundcanFlg: "入庫"
     }
   })
 }
@@ -32,20 +33,42 @@ const handleResult = () => {
   })
 }
 
-const handleTransfer = () => {
-  router.push({
-    path: "/ht0140",
-    query: {
-      code
+const handleTransfer = async () => {
+  errorMessage.value = ""
+
+  try {
+    const config = useRuntimeConfig()
+    const apiBaseUrl = config.public.apiBaseUrl
+
+    const res = await fetch(`${apiBaseUrl}/api/ht0100/transfer/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code,
+      }),
+    })
+
+    const data = await res.json()
+
+    if (data.success) {
+      errorMessage.value = getMessage("1201") // Registration
+    } else {
+      errorMessage.value = getMessage(data.messageCode)
     }
-  })
+  } catch (err) {
+    console.error(err)
+    errorMessage.value = getMessage("E103")
+  }
 }
 
 const handleCancel = () => {
   router.push({
-    path: "/ht0150",
+    path: "/ht0120",
     query: {
-      code
+      code,
+      inboundcanFlg: "取消"
     }
   })
 }
@@ -59,7 +82,7 @@ const onKeyDown = (e: KeyboardEvent) => {
 
     case "1":
       e.preventDefault()
-      handleNyuko()
+      handleGoods()
       break
 
     case "2":
@@ -101,7 +124,7 @@ onUnmounted(() => {
 
       <main class="body">
 
-        <button class="menu-btn" @click="handleNyuko">
+        <button class="menu-btn" @click="handleGoods">
           1. 入庫
         </button>
 
@@ -132,7 +155,7 @@ onUnmounted(() => {
         class="footer"
         :class="{ 'footer-error': errorMessage }"
       >
-        {{ errorMessage || "HT0110" }}
+        {{ errorMessage || "HT0100" }}
       </footer>
 
     </div>

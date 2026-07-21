@@ -7,6 +7,8 @@ from .ht0410 import get_warehouse_list
 from .ht0410 import get_read_count
 from .ht0410 import get_serial_no
 from .ht0410 import check_duplicate_qr
+import json
+from .ht0100 import transfer_data
 
 @csrf_exempt
 def form_data(request):
@@ -338,3 +340,14 @@ def scan_qr(request):
         return JsonResponse({
             "success": True
         })
+@csrf_exempt
+def transfer(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False}, status=405)
+
+    body = json.loads(request.body)
+    code = body.get("code")
+
+    result = transfer_data(code)
+
+    return JsonResponse(result)        
