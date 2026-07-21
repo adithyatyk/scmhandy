@@ -16,7 +16,108 @@ def transfer_data(htnm):
 
         xml_data = """
         <root>
-            ...
+        <data>
+        <orderFy>0</orderFy>
+        <orderMm>0</orderMm>
+        <orderSerNo>0</orderSerNo>
+        <rowNo>1</rowNo>
+        <partnerCd>12</partnerCd>
+        <itemCd>7260009</itemCd>
+        <material>SH1</material>
+        <symbol>YA-4B</symbol>
+        <qty>252</qty>
+        <slipNo>180344</slipNo>
+        <shippingDate>20180622</shippingDate>
+        <confirmSerNo>1</confirmSerNo>
+        <lot>20190208</lot>
+        <destinationCd>721885</destinationCd>
+        <scanDate>2019/02/08 15:10:33</scanDate>
+        </data>
+        <data>
+        <orderFy>0</orderFy>
+        <orderMm>0</orderMm>
+        <orderSerNo>0</orderSerNo>
+        <rowNo>2</rowNo>
+        <partnerCd>12</partnerCd>
+        <itemCd>7260010</itemCd>
+        <material>SH1</material>
+        <symbol>YA-4C</symbol>
+        <qty>320</qty>
+        <slipNo>180344</slipNo>
+        <shippingDate>20180622</shippingDate>
+        <confirmSerNo>1</confirmSerNo>
+        <lot>20190208</lot>
+        <destinationCd>721885</destinationCd>
+        <scanDate>2019/02/08 15:10:33</scanDate>
+        </data>
+        <data>
+        <orderFy>0</orderFy>
+        <orderMm>0</orderMm>
+        <orderSerNo>0</orderSerNo>
+        <rowNo>3</rowNo>
+        <partnerCd>12</partnerCd>
+        <itemCd>7260012</itemCd>
+        <material>SH1</material>
+        <symbol>YA-6</symbol>
+        <qty>98</qty>
+        <slipNo>180344</slipNo>
+        <shippingDate>20180622</shippingDate>
+        <confirmSerNo>1</confirmSerNo>
+        <lot>20190208</lot>
+        <destinationCd>721885</destinationCd>
+        <scanDate>2019/02/08 15:10:33</scanDate>
+        </data>
+        <data>
+        <orderFy>0</orderFy>
+        <orderMm>0</orderMm>
+        <orderSerNo>0</orderSerNo>
+        <rowNo>4</rowNo>
+        <partnerCd>12</partnerCd>
+        <itemCd>7260014</itemCd>
+        <material>SH1</material>
+        <symbol>YA-6C</symbol>
+        <qty>120</qty>
+        <slipNo>180344</slipNo>
+        <shippingDate>20180622</shippingDate>
+        <confirmSerNo>1</confirmSerNo>
+        <lot>20190208</lot>
+        <destinationCd>721885</destinationCd>
+        <scanDate>2019/02/08 15:10:33</scanDate>
+        </data>
+        <data>
+        <orderFy>0</orderFy>
+        <orderMm>0</orderMm>
+        <orderSerNo>0</orderSerNo>
+        <rowNo>5</rowNo>
+        <partnerCd>12</partnerCd>
+        <itemCd>7260015</itemCd>
+        <material>SH1</material>
+        <symbol>YA-6C-2</symbol>
+        <qty>120</qty>
+        <slipNo>180344</slipNo>
+        <shippingDate>20180622</shippingDate>
+        <confirmSerNo>1</confirmSerNo>
+        <lot>20190208</lot>
+        <destinationCd>721885</destinationCd>
+        <scanDate>2019/02/08 15:10:33</scanDate>
+        </data>
+        <data>
+        <orderFy>0</orderFy>
+        <orderMm>0</orderMm>
+        <orderSerNo>0</orderSerNo>
+        <rowNo>6</rowNo>
+        <partnerCd>12</partnerCd>
+        <itemCd>7260017</itemCd>
+        <material>SH1</material>
+        <symbol>YA-7Cｶｲ</symbol>
+        <qty>210</qty>
+        <slipNo>180344</slipNo>
+        <shippingDate>20180622</shippingDate>
+        <confirmSerNo>1</confirmSerNo>
+        <lot>20190208</lot>
+        <destinationCd>721885</destinationCd>
+        <scanDate>2019/02/08 15:10:33</scanDate>
+        </data>
         </root>
         """
 
@@ -47,7 +148,7 @@ def transfer_data(htnm):
         conn.commit()
 
         # If procedure failed, return immediately
-        if out_cd != "1201":
+        if out_cd != "I201":
             return {
                 "success": False,
                 "messageCode": out_cd
@@ -69,7 +170,7 @@ def transfer_data(htnm):
         if count == 0:
             return {
                 "success": False,
-                "messageCode": "1215"
+                "messageCode": "E215"
             }
 
         # --------------------------
@@ -85,7 +186,7 @@ def transfer_data(htnm):
 
         return {
             "success": True,
-            "messageCode": "1201"
+            "messageCode": "I201"
         }
 
     except Exception:
