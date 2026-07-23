@@ -65,7 +65,7 @@ const handleDelete = () => {
 const handleDeleteTemp = () => {
   clearMsg()
 
-  confirmMessage.value = getMessage("Q204", code)
+  confirmMessage.value = getMessage("Q204", "一時保存")
   showConfirm.value = true
 }
 
@@ -100,7 +100,7 @@ const handleOk = async () => {
       if (data.success) {
         showMsg(getMessage("I202"), "info")
       } else {
-        showMsg(getMessage("I203", code), "info")
+        showMsg(getMessage("I203", "一時保存"), "info")
       }
     } else {
       showMsg(getMessage("E225"), "error")
@@ -235,7 +235,10 @@ onUnmounted(() => {
 
       <footer
         class="footer"
-        :class="{ 'footer-error': lblMsgVisible }"
+        :class="{
+          'footer-info': lblMsgVisible && lblMsgType === 'info',
+          'footer-error': lblMsgVisible && lblMsgType === 'error'
+        }"
       >
         <span v-if="lblMsgVisible">
           {{ lblMsg }}
