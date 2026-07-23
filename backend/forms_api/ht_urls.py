@@ -1,7 +1,7 @@
 from django.urls import path
 from .ht0011 import validate_password
 from .ht_views import form_data, worker_info, delete_temp,warehouse_list,read_count,serial_no
-from .ht_views import scan_qr,transfer
+from .ht_views import scan_qr,transfer,detail_list
 urlpatterns = [
 
     path(
@@ -42,11 +42,16 @@ urlpatterns = [
         "ht0410/scan/",
         scan_qr
     ),
-
+ 
     path(
         "ht0100/transfer/",
         transfer
     ),
+
+    path(
+        "ht0410/list/",
+        detail_list
+    )
     
 ]
 

@@ -1,4 +1,5 @@
 from .as400 import get_connection
+from datetime import datetime
 
 def get_warehouse_list():
     conn = None
@@ -12,7 +13,7 @@ def get_warehouse_list():
             SELECT
                 STOCCD,
                 STOCNM
-            FROM TYKSFLIB.MWAREHOUSE
+            FROM ADITHYA1.MWAREHOUSE
             WHERE DELFLG = ' '
             ORDER BY STOCCD
         """
@@ -62,15 +63,15 @@ def get_read_count(worker_code: str, warehouse_code: str):
 
         sql = """
             SELECT COUNT(*)
-            FROM TYKSFLIB.HTSTOCKTAK
+            FROM ADITHYA1.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?
               AND DELFLG = ''           
         """
         print("code:", worker_code)
         print("Warehouse Code:", warehouse_code)
-        print(sql)
-        cursor.execute(sql, [worker_code, warehouse_code])
+        print(sql)  
+        cursor.execute(sql, [worker_code, int(warehouse_code)])
 
         row = cursor.fetchone()
 
@@ -98,7 +99,7 @@ def get_serial_no(worker_code: str, warehouse_code: str):
 
         sql = """
             SELECT MAX(SERNO)
-            FROM TYKSFLIB.HTSTOCKTAK
+            FROM ADITHYA1.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?                  
         """
@@ -107,7 +108,7 @@ def get_serial_no(worker_code: str, warehouse_code: str):
         print("Warehouse Code:", warehouse_code)
         print(sql)
 
-        cursor.execute(sql, [worker_code, warehouse_code])
+        cursor.execute(sql, [worker_code, int(warehouse_code)])
 
         row = cursor.fetchone()
 
@@ -137,37 +138,210 @@ def check_duplicate_qr(qr_code: str):
         cursor = conn.cursor()
 
         sql = """
-            SELECT
-                HTNM,
-                WAREHOUSCD,
-                SERNO
-            FROM TYKSFLIB.HTSTOCKQR
+            SELECT 1
+            FROM ADITHYA1.HTSTOCKQR
             WHERE QR = ?
               AND TACIAIFLG = '0'
         """
 
-        print("QR Code:", qr_code)
-        print(sql)
-
         cursor.execute(sql, [qr_code])
 
-        # ADD THESE LINES HERE
         row = cursor.fetchone()
 
-        print("ROW =", row)
-
         if row:
-            return True
+            return {"duplicate": True}
 
-        return False
+        return {"duplicate": False}
 
     except Exception as e:
         print("Error:", e)
-        return False
+        return {"duplicate": False}
 
     finally:
         if cursor:
             cursor.close()
 
+        if conn:
+            conn.close()
+def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
+
+    conn = None
+    cursor = None
+
+    try:
+        fields = qr_code.strip().split(",")
+
+        if len(fields) != 12:
+            return {
+                "success": False,
+                "code": "E220"
+            }
+
+        conf_type   = fields[0]
+
+        partner_cd  = int(fields[1])
+        lot         = int(fields[2])
+        pallet_unit = int(fields[3])
+        destinat_cd = int(fields[4])
+        conf_rowno  = int(fields[5])
+        # month       = int(fields[6])      # Not used in HTSTOCKTAK
+        conf_serno  = int(fields[7])
+        item_cd     = int(fields[8])
+        material    = fields[9].strip()
+        symbol      = fields[10].strip()
+        qty         = int(fields[11])
+
+        
+
+        print(fields[0])
+
+        print( fields[1])
+
+        print( fields[2])
+
+        print( fields[3])
+
+        print( fields[4])
+
+        print( int(fields[5]))
+
+        print( fields[6])
+
+        print( fields[7])
+
+        print( fields[8])
+
+        print( fields[9])
+
+        print( fields[10])
+        
+        
+        print(int(fields[11]))
+
+        serno = get_serial_no(worker_code, warehouse_code) + 1
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        sql = """
+        INSERT INTO ADITHYA1.HTSTOCKTAK
+        (
+            HTNM,
+            WAREHOUSCD,
+            SERNO,
+            ITEMCD,
+            MATERIAL,
+            SYMBOL,
+            PALLETUNIT,
+            PALLETQTY,
+            QTY,
+            PARTNERCD,
+            CREATEID,
+            CREATEDT,
+            INSPUPDFLG,
+            LASTID,
+            LASTDT,
+            DELFLG,
+            CONFSERNO,
+            LOT,
+            DESTINATCD,
+            CONFROWNO
+        )
+        VALUES
+        (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, CAST(CURRENT TIMESTAMP AS CHAR(26)),
+            ?, ?, ?, ?, ?, ?, ?, ?
+        )
+        """
+        print("Insert SQL:", sql)
+        params = [
+            worker_code,
+            int(warehouse_code),
+            serno,
+            item_cd,
+            material,
+            symbol,
+            pallet_unit,
+            1,
+            qty,
+            partner_cd,
+            int(worker_code),
+            "",
+            0,
+            "",
+            "",
+            conf_serno,
+            lot,
+            destinat_cd,
+            conf_rowno
+        ]
+
+        for i, p in enumerate(params, 1):
+            print(f"P{i}: {p!r} ({type(p).__name__})")
+
+        cursor.execute(sql, params)
+        
+        conn.commit()
+
+        return {
+            "success": True
+        }
+
+    except Exception as e:
+        print("Insert Error:", e)
+
+        return {
+            "success": False,
+            "message": str(e)
+        }
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()
+def detail_list(worker_code: str, warehouse_code: str):
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        sql = """
+            SELECT
+                MATERIAL,
+                SYMBOL,
+                QTY
+            FROM ADITHYA1.HTSTOCKTAK
+            WHERE HTNM = ?
+              AND WAREHOUSCD = ?
+              AND DELFLG = ''
+            ORDER BY SERNO
+        """
+
+        cursor.execute(sql, [worker_code, int(warehouse_code)])
+
+        rows = []
+
+        for row in cursor.fetchall():
+            rows.append({
+                "material": str(row[0]).strip(),
+                "symbol": str(row[1]).strip(),
+                "qty": row[2]
+            })
+
+        return rows
+
+    except Exception as e:
+        print("Error:", e)
+        return []
+
+    finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()

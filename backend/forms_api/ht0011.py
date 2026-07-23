@@ -20,7 +20,7 @@ def validate_password(request):
 
         sql = """
         SELECT NM, PW
-        FROM TYKSFLIB.MSTAFF
+        FROM ADITHYA1.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?

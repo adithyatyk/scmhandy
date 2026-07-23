@@ -7,8 +7,10 @@ from .ht0410 import get_warehouse_list
 from .ht0410 import get_read_count
 from .ht0410 import get_serial_no
 from .ht0410 import check_duplicate_qr
-import json
 from .ht0100 import transfer_data
+from .ht0410 import insert_stocktak
+from .ht0410 import detail_list as get_detail_list
+import json
 
 @csrf_exempt
 def form_data(request):
@@ -191,7 +193,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM TYKSFLIB.MSTAFF
+        FROM ADITHYA1.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -302,44 +304,58 @@ def serial_no(request):
 
     return JsonResponse({
         "success": False
-    })    
+    })        
 @csrf_exempt
 def scan_qr(request):
 
-    if request.method == "POST":
+    if request.method != "POST":
+        return JsonResponse({"success": False}, status=405)
 
-        data = json.loads(request.body or "{}")
+    data = json.loads(request.body or "{}")
 
-        qr_code = data.get("qrCode", "").strip()
-        mode = data.get("mode", "").strip()
+    worker_code = data.get("code", "").strip()
+    warehouse_code = data.get("warehouseCode", "").strip()
+    qr_code = data.get("qrCode", "").strip()
+    mode = data.get("mode", "").strip()
 
-        # Input mode only
-        if mode == "入力":
+    if mode == "入力":
 
-            # 1. Duplicate check
-            if check_duplicate_qr(qr_code):
-                return JsonResponse({
-                    "success": False,
-                    "code": "E214"
-                })
+        next_serno = get_serial_no(worker_code, warehouse_code) + 1
 
-            # 2. First character check
-            if len(qr_code) == 0 or qr_code[0] not in ["T", "G", "F"]:
-                return JsonResponse({
-                    "success": False,
-                    "code": "E220"
-                })
+        # Duplicate check
+        result = check_duplicate_qr(qr_code)
 
-            # 3. Shipment check (later)
-            # if not check_shipment(...):
-            #     return JsonResponse({
-            #         "success": False,
-            #         "code": "E226"
-            #     })
+        if result["duplicate"]:
+            return JsonResponse({
+                "success": False,
+                "code": "E214",
+                "message": f"{worker_code}_{warehouse_code}_{next_serno}"
+            })
 
-        return JsonResponse({
-            "success": True
-        })
+        # First character validation
+        if len(qr_code) == 0 or qr_code[0] not in ["T", "G", "F"]:
+            return JsonResponse({
+                "success": False,
+                "code": "E220"
+            })
+
+        # Insert into HTSTOCKTAK
+        result = insert_stocktak(
+            worker_code,
+            warehouse_code,
+            qr_code
+        )
+
+        if not result["success"]:
+            return JsonResponse({
+                "success": False,
+                "code": "E229",
+                "message": result["message"]
+            })
+
+    return JsonResponse({
+        "success": True
+    })
 @csrf_exempt
 def transfer(request):
     if request.method != "POST":
@@ -351,3 +367,20 @@ def transfer(request):
     result = transfer_data(code)
 
     return JsonResponse(result)        
+@csrf_exempt
+def detail_list(request):
+
+    if request.method != "POST":
+        return JsonResponse({"success": False}, status=405)
+
+    data = json.loads(request.body or "{}")
+
+    worker_code = data.get("code")
+    warehouse_code = data.get("warehouseCode")
+
+    rows = get_detail_list(worker_code, warehouse_code)
+
+    return JsonResponse({
+        "success": True,
+        "rows": rows
+    })
