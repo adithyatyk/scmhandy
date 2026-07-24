@@ -193,7 +193,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM ADITHYA1.MSTAFF
+        FROM TYKSFLIB.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?

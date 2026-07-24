@@ -2,6 +2,8 @@
 const router = useRouter()
 const route = useRoute()
 const errorMessage = ref("")
+const messageCode = ref("")
+const showConfirm = ref(false)
 
 const code = (route.query.code as string) || ""
 
@@ -33,7 +35,11 @@ const handleResult = () => {
   })
 }
 
-const handleTransfer = async () => {
+const handleTransfer = () => {
+  showConfirm.value = true
+}
+
+const executeTransfer = async () => {
   errorMessage.value = ""
 
   try {
@@ -52,15 +58,26 @@ const handleTransfer = async () => {
 
     const data = await res.json()
 
+    messageCode.value = data.messageCode
+
     if (data.success) {
-      errorMessage.value = getMessage("1201") // Registration
+      errorMessage.value = getMessage(data.messageCode)
     } else {
       errorMessage.value = getMessage(data.messageCode)
     }
   } catch (err) {
     console.error(err)
+    messageCode.value = "E103"
     errorMessage.value = getMessage("E103")
   }
+}
+const handleYes = () => {
+  showConfirm.value = false
+  executeTransfer()
+}
+
+const handleNo = () => {
+  showConfirm.value = false
 }
 
 const handleCancel = () => {
@@ -111,6 +128,7 @@ onUnmounted(() => {
 })
 </script>
 <template>
+
   <div class="handheld-page">
     <div class="device">
 
@@ -153,10 +171,26 @@ onUnmounted(() => {
 
       <footer
         class="footer"
-        :class="{ 'footer-error': errorMessage }"
+        :class="{
+          'footer-info': messageCode.startsWith('I'),
+          'footer-error': messageCode.startsWith('E')
+        }"
       >
         {{ errorMessage || "HT0100" }}
       </footer>
+
+      <div v-if="showConfirm" class="confirm-overlay">
+        <div class="confirm-box">
+          <div class="confirm-message">
+            {{ getMessage("Q201","受入") }}
+          </div>
+
+          <div class="confirm-buttons">
+            <button @click="handleYes">はい</button>
+            <button @click="handleNo">いいえ</button>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>

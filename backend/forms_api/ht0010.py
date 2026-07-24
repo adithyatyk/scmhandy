@@ -4,7 +4,7 @@ from .as400 import get_connection
 def _default_worker_query():
     return """
         SELECT CD, NM
-        FROM ADITHYA1.MSTAFF
+        FROM TYKSFLIB.MSTAFF
         WHERE SYSTEM3='1'   
         AND DELFLG = '' 
         ORDER BY CD

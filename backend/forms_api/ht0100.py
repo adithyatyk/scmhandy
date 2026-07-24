@@ -31,6 +31,7 @@ def transfer_data(htnm):
         <confirmSerNo>1</confirmSerNo>
         <lot>20190208</lot>
         <destinationCd>721885</destinationCd>
+        <confirmRowNo>9</confirmRowNo>
         <scanDate>2019/02/08 15:10:33</scanDate>
         </data>
         <data>
@@ -48,6 +49,7 @@ def transfer_data(htnm):
         <confirmSerNo>1</confirmSerNo>
         <lot>20190208</lot>
         <destinationCd>721885</destinationCd>
+        <confirmRowNo>9</confirmRowNo>
         <scanDate>2019/02/08 15:10:33</scanDate>
         </data>
         <data>
@@ -65,6 +67,7 @@ def transfer_data(htnm):
         <confirmSerNo>1</confirmSerNo>
         <lot>20190208</lot>
         <destinationCd>721885</destinationCd>
+        <confirmRowNo>9</confirmRowNo>
         <scanDate>2019/02/08 15:10:33</scanDate>
         </data>
         <data>
@@ -82,6 +85,7 @@ def transfer_data(htnm):
         <confirmSerNo>1</confirmSerNo>
         <lot>20190208</lot>
         <destinationCd>721885</destinationCd>
+        <confirmRowNo>9</confirmRowNo>
         <scanDate>2019/02/08 15:10:33</scanDate>
         </data>
         <data>
@@ -99,6 +103,7 @@ def transfer_data(htnm):
         <confirmSerNo>1</confirmSerNo>
         <lot>20190208</lot>
         <destinationCd>721885</destinationCd>
+        <confirmRowNo>9</confirmRowNo>
         <scanDate>2019/02/08 15:10:33</scanDate>
         </data>
         <data>
@@ -116,6 +121,7 @@ def transfer_data(htnm):
         <confirmSerNo>1</confirmSerNo>
         <lot>20190208</lot>
         <destinationCd>721885</destinationCd>
+        <confirmRowNo>9</confirmRowNo>
         <scanDate>2019/02/08 15:10:33</scanDate>
         </data>
         </root>
@@ -126,7 +132,7 @@ def transfer_data(htnm):
         # --------------------------
         jconn = conn.jconn
 
-        cs = jconn.prepareCall("{CALL ADITHYA1.spAddHtTake(?,?,?,?,?)}")
+        cs = jconn.prepareCall("{CALL TYKSFLIB.spAddHtTake(?,?,?,?,?)}")
 
         cs.setInt(1, empno)
         cs.setString(2, pc)
@@ -141,14 +147,14 @@ def transfer_data(htnm):
 
         cs.execute()
 
-        out_cd = cs.getString(5)
+        out_cd = (cs.getString(5) or "").strip()
 
         print("OUT_CD =", out_cd)
 
         conn.commit()
 
-        # If procedure failed, return immediately
-        if out_cd != "I201":
+        # Continue only if the message code starts with "I"
+        if not out_cd.startswith("I"):
             return {
                 "success": False,
                 "messageCode": out_cd
@@ -159,7 +165,7 @@ def transfer_data(htnm):
         # --------------------------
         cursor.execute("""
             SELECT COUNT(*)
-            FROM ADITHYA1.HTSTORAGE
+            FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
         """, (htnm,))
 
@@ -178,7 +184,7 @@ def transfer_data(htnm):
         # --------------------------
         cursor.execute("""
             DELETE
-            FROM ADITHYA1.HTSTORAGE
+            FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
         """, (htnm,))
 
@@ -186,7 +192,7 @@ def transfer_data(htnm):
 
         return {
             "success": True,
-            "messageCode": "I201"
+            "messageCode": out_cd
         }
 
     except Exception:
