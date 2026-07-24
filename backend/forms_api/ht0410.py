@@ -163,6 +163,7 @@ def check_duplicate_qr(qr_code: str):
 
         if conn:
             conn.close()
+    
 def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
 
     conn = None
@@ -170,6 +171,9 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
 
     try:
         fields = qr_code.strip().split(",")
+        print("QR:", qr_code)
+        print("Fields:", fields)
+        print("Length:", len(fields))
 
         if len(fields) != 12:
             return {
@@ -193,28 +197,38 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
 
         
 
-        print(fields[0])
+        print("worker_code =", repr(worker_code))
+        print("warehouse_code =", repr(warehouse_code))
 
-        print( fields[1])
+        print("partner_cd =", repr(fields[1]))
+        partner_cd = int(fields[1])
 
-        print( fields[2])
+        print("lot =", repr(fields[2]))
+        lot = int(fields[2])
 
-        print( fields[3])
+        print("pallet_unit =", repr(fields[3]))
+        pallet_unit = int(fields[3])
 
-        print( fields[4])
+        print("destinat_cd =", repr(fields[4]))
+        destinat_cd = int(fields[4])
 
-        print( int(fields[5]))
+        print("conf_rowno =", repr(fields[5]))
+        conf_rowno = int(fields[5])
 
-        print( fields[6])
+        print("conf_serno =", repr(fields[7]))
+        conf_serno = int(fields[7]) if fields[7].strip() else 0
 
-        print( fields[7])
+        print("item_cd =", repr(fields[8]))
+        item_cd = int(fields[8])
 
-        print( fields[8])
+        print("qty =", repr(fields[11]))
+        qty = int(fields[11])
 
-        print( fields[9])
+        print("worker_code int =", repr(worker_code))
+        createid = int(worker_code)
 
-        print( fields[10])
-        
+        print("warehouse_code int =", repr(warehouse_code))
+        warehouse = int(warehouse_code)
         
         print(int(fields[11]))
 

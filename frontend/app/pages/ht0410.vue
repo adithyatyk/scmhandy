@@ -459,19 +459,16 @@ const handleEnter = async () => {
 
   try {
 
-    const response = await $fetch<{
-    success: boolean
-    code?: string
-    }>(
-        `${apiBaseUrl}/api/ht0410/scan/`,
-        {
-            method: "POST",
-            body: {
-                qrCode: qrCode.value,
-                mode
-            }
-        }
-    )
+    const response = await $fetch(`${apiBaseUrl}/api/ht0410/scan/`, {
+      method: "POST",
+      body: {
+        code,
+        warehouseCode: selectedWarehouseCode.value,
+        qrCode: qrCode.value,
+        inventoryFlag,
+        mode
+      }
+    })
 
     if (response.success) {
 
