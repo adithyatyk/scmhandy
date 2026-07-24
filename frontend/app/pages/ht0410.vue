@@ -480,8 +480,6 @@ const handleEnter = async () => {
 
       await loadDetailList()
 
-      message.value = "success"
-
       nextTick(() => {
 
         qrInput.value?.focus()
