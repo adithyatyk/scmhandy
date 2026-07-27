@@ -5,6 +5,7 @@ import { computed, ref, onMounted, onUnmounted } from "vue"
 
 const router = useRouter()
 const route = useRoute()
+const taciaiflg = route.query.taciaiflg as string || "0"
 
 // Parameters
 const code = (route.query.code as string) || ""
@@ -43,7 +44,8 @@ const handleInput = () => {
     path: "/ht0410",
     query: {
       code: code,
-      mode: "入力"
+      mode: "入力",
+      taciaiflg
     },
   })
 }
@@ -56,7 +58,8 @@ const handleDelete = () => {
     path: "/ht0410",
     query: {
       code: code,
-      mode: "削除"
+      mode: "削除",
+      taciaiflg
     },
   })
 }

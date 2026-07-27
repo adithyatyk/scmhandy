@@ -13,7 +13,7 @@ def get_warehouse_list():
             SELECT
                 STOCCD,
                 STOCNM
-            FROM TYKSFLIB.MWAREHOUSE
+            FROM ADITHYA1.MWAREHOUSE
             WHERE DELFLG = ' '
             ORDER BY STOCCD
         """
@@ -52,7 +52,7 @@ def get_warehouse_list():
             except Exception:
                 pass
 
-def get_read_count(worker_code: str, warehouse_code: str):
+def get_read_count(worker_code: str, warehouse_code: str, taciaiflg: str):
 
     conn = None
     cursor = None
@@ -63,7 +63,7 @@ def get_read_count(worker_code: str, warehouse_code: str):
 
         sql = """
             SELECT COUNT(*)
-            FROM TYKSFLIB.HTSTOCKTAK
+            FROM ADITHYA1.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?
               AND DELFLG = ''           
@@ -88,7 +88,7 @@ def get_read_count(worker_code: str, warehouse_code: str):
         if conn:
             conn.close()                
 
-def get_serial_no(worker_code: str, warehouse_code: str):
+def get_serial_no(worker_code: str, warehouse_code: str, taciaiflg: str):
 
     conn = None
     cursor = None
@@ -99,7 +99,7 @@ def get_serial_no(worker_code: str, warehouse_code: str):
 
         sql = """
             SELECT MAX(SERNO)
-            FROM TYKSFLIB.HTSTOCKTAK
+            FROM ADITHYA1.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?                  
         """
@@ -128,7 +128,7 @@ def get_serial_no(worker_code: str, warehouse_code: str):
         if conn:
             conn.close()            
 
-def check_duplicate_qr(qr_code: str):
+def check_duplicate_qr(qr_code: str, taciaiflg: str):
 
     conn = None
     cursor = None
@@ -139,7 +139,7 @@ def check_duplicate_qr(qr_code: str):
 
         sql = """
             SELECT 1
-            FROM TYKSFLIB.HTSTOCKQR
+            FROM ADITHYA1.HTSTOCKQR
             WHERE QR = ?
               AND TACIAIFLG = '0'
         """
@@ -163,7 +163,42 @@ def check_duplicate_qr(qr_code: str):
 
         if conn:
             conn.close()
-def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
+def check_gomast(material: str, symbol: str, partner_cd: int):
+
+    conn = None
+    cursor = None
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        sql = """
+            SELECT GOMANO
+            FROM ADITHYA1.GOMAST
+            WHERE GOMANA = ?
+              AND GOMATK = ?
+              AND GOMASY = ?
+        """
+
+        cursor.execute(sql, [material, symbol, partner_cd])
+
+        row = cursor.fetchone()
+
+        if row and str(row[0]).strip() != "":
+            return True
+
+        return False
+
+    except Exception as e:
+        print("GOMAST Error:", e)
+        return False
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaiflg: str):
 
     conn = None
     cursor = None
@@ -184,15 +219,28 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
         pallet_unit = int(fields[3])
         destinat_cd = int(fields[4])
         conf_rowno  = int(fields[5])
-        # month       = int(fields[6])      # Not used in HTSTOCKTAK
         conf_serno  = int(fields[7])
         item_cd     = int(fields[8])
         material    = fields[9].strip()
         symbol      = fields[10].strip()
         qty         = int(fields[11])
 
-        
+        exists = check_gomast(material, symbol, partner_cd)
+        print("Material:", material)
+        print("Symbol:", symbol)
+        print("Exists:", exists)
 
+        if exists:
+            material_value = material
+            symbol_value = symbol
+            partner_cd_value = partner_cd
+        else:
+            material_value = ""
+            symbol_value = ""
+            partner_cd_value = 0
+
+        print("Material Value:", repr(material_value))
+        print("Symbol Value:", repr(symbol_value))
         print(fields[0])
 
         print( fields[1])
@@ -224,7 +272,7 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
         cursor = conn.cursor()
 
         sql = """
-        INSERT INTO TYKSFLIB.HTSTOCKTAK
+        INSERT INTO ADITHYA1.HTSTOCKTAK
         (
             HTNM,
             WAREHOUSCD,
@@ -255,17 +303,21 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str):
         )
         """
         print("Insert SQL:", sql)
+        print("exists =", exists)
+        print("material_value =", repr(material_value))
+        print("symbol_value =", repr(symbol_value))
+        print("symbol =", repr(symbol))
         params = [
             worker_code,
             int(warehouse_code),
             serno,
             item_cd,
-            material,
-            symbol,
+            material_value,
+            symbol_value,
             pallet_unit,
             1,
             qty,
-            partner_cd,
+            partner_cd_value,
             int(worker_code),
             "",
             0,
@@ -316,7 +368,7 @@ def detail_list(worker_code: str, warehouse_code: str):
                 MATERIAL,
                 SYMBOL,
                 QTY
-            FROM TYKSFLIB.HTSTOCKTAK
+            FROM ADITHYA1.HTSTOCKTAK
             WHERE HTNM = ?
               AND WAREHOUSCD = ?
               AND DELFLG = ''

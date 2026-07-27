@@ -33,7 +33,8 @@ const handleHT0300 = () => {
         path: "/HT0400",
         query: {
           code: code,
-          inventoryFlg: "完成品"
+          inventoryFlg: "完成品",
+          taciaiflg: "0"
         }
       })
 }
@@ -43,7 +44,8 @@ const handleHT0400 = () => {
         path: "/HT0400",
         query: {
           code: code,
-          inventoryFlg: "立会い"
+          inventoryFlg: "立会い",
+          taciaiflg: "1"
         }
       })
 }

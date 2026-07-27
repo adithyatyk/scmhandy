@@ -7,6 +7,7 @@ const route = useRoute()
 const config = useRuntimeConfig()
 
 const apiBaseUrl = config.public.apiBaseUrl
+const taciaiflg = (route.query.taciaiflg as string) || "0"
 
 /* =========================
    PARAMETERS
@@ -101,7 +102,8 @@ const handleBack = () => {
 
       code: code,
 
-      inventoryFlag: "立会い"
+      inventoryFlag: "立会い",
+      taciaiflg
 
     }
 
@@ -287,10 +289,9 @@ const loadCount = async () => {
         body: {
 
           code,
-
           warehouseCode: selectedWarehouseCode.value,
-
-          mode
+          mode,
+          taciaiflg
 
         }
 
@@ -331,10 +332,9 @@ const loadSerial = async () => {
         body: {
 
           code,
-
           warehouseCode: selectedWarehouseCode.value,
-
-          mode
+          mode,
+          taciaiflg
 
         }
 
@@ -401,10 +401,9 @@ const loadDetailList = async () => {
         body: {
 
           code,
-
           warehouseCode: selectedWarehouseCode.value,
-
-          mode
+          mode,
+          taciaiflg
 
         }
 
@@ -467,8 +466,11 @@ const handleEnter = async () => {
         {
             method: "POST",
             body: {
+                code,
+                warehouseCode: selectedWarehouseCode.value,
                 qrCode: qrCode.value,
-                mode
+                mode,
+                taciaiflg
             }
         }
     )
