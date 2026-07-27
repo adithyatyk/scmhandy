@@ -4,10 +4,10 @@ def get_connection():
 
     conn = jaydebeapi.connect(
      "com.ibm.as400.access.AS400JDBCDriver",
-     "jdbc:as400://185.113.5.134;libraries=ADITHYA1",
-    ["adithya", "adithya123"],
+     "jdbc:as400://192.168.90.205;libraries=TYKSFLIB",
+      ["QSECOFR","QSECOFR"],
 
-	r"C:\Users\user\Desktop\Scmhandy\scmhandy\backend\jar\jt400.jar"
+	r"C:\Users\is_144\Desktop\project\ScmHandy\backend\jar\jt400.jar"
     )
 
     return conn

@@ -9,10 +9,10 @@ const taciaiflg = route.query.taciaiflg as string || "0"
 
 // Parameters
 const code = (route.query.code as string) || ""
-const inventoryFlg = (route.query.inventoryFlg as string) || ""
+const inventoryFlag = (route.query.inventoryFlag as string) || ""
 
 // Screen title
-const title = computed(() => `【棚卸 ${inventoryFlg}】メニュー`)
+const title = computed(() => `【棚卸 ${inventoryFlag}】メニュー`)
 
 // Footer message
 const lblMsg = ref("")
@@ -93,7 +93,7 @@ const handleOk = async () => {
       },
       body: JSON.stringify({
         code,
-        inventoryFlg,
+        inventoryFlag,
       }),
     })
 
@@ -151,7 +151,7 @@ const handleKeyDown = (event: KeyboardEvent) => {
 onMounted(() => {
   console.log(route.query)
   console.log("code =", code)
-  console.log("inventoryFlg =", inventoryFlg)
+  console.log("inventoryFlag =", inventoryFlag)
 
   window.addEventListener("keydown", handleKeyDown)
 })

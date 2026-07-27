@@ -193,7 +193,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM ADITHYA1.MSTAFF
+        FROM TYKSFLIB.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -274,8 +274,11 @@ def read_count(request):
 
         worker_code = data.get("code")
         warehouse_code = data.get("warehouseCode")
+        inventory_flag = data.get("inventoryFlag")
 
-        count = get_read_count(worker_code, warehouse_code)
+        taciaiflg = "0" if inventory_flag == "完成品" else "1"
+
+        count = get_read_count(worker_code, warehouse_code, taciaiflg)
 
         return JsonResponse({
             "success": True,
@@ -294,8 +297,11 @@ def serial_no(request):
 
         worker_code = data.get("code")
         warehouse_code = data.get("warehouseCode")
+        inventory_flag = data.get("inventoryFlag")
 
-        serial = get_serial_no(worker_code, warehouse_code)
+        taciaiflg = "0" if inventory_flag == "完成品" else "1"
+
+        serial = get_serial_no(worker_code, warehouse_code, taciaiflg)
 
         return JsonResponse({
             "success": True,
@@ -317,13 +323,15 @@ def scan_qr(request):
     warehouse_code = data.get("warehouseCode", "").strip()
     qr_code = data.get("qrCode", "").strip()
     mode = data.get("mode", "").strip()
+    inventory_flag = data.get("inventoryFlag", "").strip()
+    taciaiflg = "0" if inventory_flag == "完成品" else "1"
 
     if mode == "入力":
 
-        next_serno = get_serial_no(worker_code, warehouse_code) + 1
+        next_serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1
 
         # Duplicate check
-        result = check_duplicate_qr(qr_code)
+        result = check_duplicate_qr(qr_code, taciaiflg)
 
         if result["duplicate"]:
             return JsonResponse({
@@ -343,7 +351,9 @@ def scan_qr(request):
         result = insert_stocktak(
             worker_code,
             warehouse_code,
-            qr_code
+            qr_code,
+            taciaiflg,
+            inventory_flag
         )
 
         if not result["success"]:
@@ -377,8 +387,13 @@ def detail_list(request):
 
     worker_code = data.get("code")
     warehouse_code = data.get("warehouseCode")
+    inventory_flag = data.get("inventoryFlag")
 
-    rows = get_detail_list(worker_code, warehouse_code)
+    rows = get_detail_list(
+        worker_code,
+        warehouse_code,
+        inventory_flag
+    )
 
     return JsonResponse({
         "success": True,

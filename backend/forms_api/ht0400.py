@@ -1,6 +1,6 @@
 from .as400 import get_connection
 
-def delete_temp_data(code: str, inventory_flg: str):
+def delete_temp_data(code: str, inventoryFlag: str):
     conn = None
     cursor = None
 
@@ -8,13 +8,13 @@ def delete_temp_data(code: str, inventory_flg: str):
         conn = get_connection()
         cursor = conn.cursor()
 
-        if inventory_flg == "完成品":
+        if inventoryFlag == "完成品":
             taciaiflg = "0"
         else:
             taciaiflg = "1"
 
         sql = """
-            DELETE FROM ADITHYA1.HTSTOCKQR
+            DELETE FROM TYKSFLIB.HTSTOCKQR
             WHERE HTNM = ?
               AND TACIAIFLG = ?
         """

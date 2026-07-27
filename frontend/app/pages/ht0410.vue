@@ -291,7 +291,7 @@ const loadCount = async () => {
           code,
           warehouseCode: selectedWarehouseCode.value,
           mode,
-          taciaiflg
+          inventoryFlag
 
         }
 
@@ -334,7 +334,7 @@ const loadSerial = async () => {
           code,
           warehouseCode: selectedWarehouseCode.value,
           mode,
-          taciaiflg
+          inventoryFlag
 
         }
 
@@ -403,7 +403,7 @@ const loadDetailList = async () => {
           code,
           warehouseCode: selectedWarehouseCode.value,
           mode,
-          taciaiflg
+          inventoryFlag
 
         }
 
@@ -470,7 +470,7 @@ const handleEnter = async () => {
                 warehouseCode: selectedWarehouseCode.value,
                 qrCode: qrCode.value,
                 mode,
-                taciaiflg
+                inventoryFlag
             }
         }
     )
