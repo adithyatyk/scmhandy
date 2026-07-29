@@ -194,7 +194,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM ADITHYA1.MSTAFF
+        FROM TYKSFLIB.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -327,6 +327,14 @@ def scan_qr(request):
     inventory_flag = data.get("inventoryFlag", "").strip()
     taciaiflg = "0" if inventory_flag == "完成品" else "1"
 
+    print("Before get_serial_no")
+    next_serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1
+    print("After get_serial_no")
+
+    print("Before duplicate check")
+    result = check_duplicate_qr(qr_code, taciaiflg)
+    print("After duplicate check", result)
+    print("Mode =", mode)
     if mode == "入力":
 
         next_serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1

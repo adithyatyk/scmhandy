@@ -132,7 +132,7 @@ def transfer_data(htnm):
         # --------------------------
         jconn = conn.jconn
 
-        cs = jconn.prepareCall("{CALL ADITHYA1.spAddHtTake(?,?,?,?,?)}")
+        cs = jconn.prepareCall("{CALL TYKSFLIB.spAddHtTake(?,?,?,?,?)}")
 
         cs.setInt(1, empno)
         cs.setString(2, pc)
@@ -165,7 +165,7 @@ def transfer_data(htnm):
         # --------------------------
         cursor.execute("""
             SELECT COUNT(*)
-            FROM ADITHYA1.HTSTORAGE
+            FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
         """, (htnm,))
 
@@ -184,7 +184,7 @@ def transfer_data(htnm):
         # --------------------------
         cursor.execute("""
             DELETE
-            FROM ADITHYA1.HTSTORAGE
+            FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
         """, (htnm,))
 

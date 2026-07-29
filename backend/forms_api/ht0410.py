@@ -13,7 +13,7 @@ def get_warehouse_list():
             SELECT
                 STOCCD,
                 STOCNM
-            FROM ADITHYA1.MWAREHOUSE
+            FROM TYKSFLIB.MWAREHOUSE
             WHERE DELFLG = ' '
             ORDER BY STOCCD
         """
@@ -62,11 +62,11 @@ def get_read_count(worker_code: str, warehouse_code: str, taciaiflg: str):
         cursor = conn.cursor()
 
         if taciaiflg == "1":
-            table_name = "ADITHYA1.HTSTOCKTAT"
+            table_name = "TYKSFLIB.HTSTOCKTAT"
         else:
-            table_name = "ADITHYA1.HTSTOCKTAK"
+            table_name = "TYKSFLIB.HTSTOCKTAK"
 
-        if table_name == "ADITHYA1.HTSTOCKTAK":
+        if table_name == "TYKSFLIB.HTSTOCKTAK":
             sql = f"""
                 SELECT COUNT(*)
                 FROM {table_name}
@@ -112,9 +112,9 @@ def get_serial_no(worker_code: str, warehouse_code: str, taciaiflg: str):
         cursor = conn.cursor()
 
         if taciaiflg == "1":
-            table_name = "ADITHYA1.HTSTOCKTAT"
+            table_name = "TYKSFLIB.HTSTOCKTAT"
         else:
-            table_name = "ADITHYA1.HTSTOCKTAK"
+            table_name = "TYKSFLIB.HTSTOCKTAK"
 
         sql = f"""
             SELECT MAX(SERNO)
@@ -128,12 +128,15 @@ def get_serial_no(worker_code: str, warehouse_code: str, taciaiflg: str):
         print(sql)
 
         cursor.execute(sql, [worker_code, int(warehouse_code)])
-
+        print("MAXIMUM")
         row = cursor.fetchone()
+        print("Fetched row:", row)
 
         if row and row[0] is not None:
+            print("Returning:", int(row[0]))
             return int(row[0])
 
+        print("Returning 0")
         return 0
 
     except Exception as e:
@@ -155,16 +158,17 @@ def check_duplicate_qr(qr_code: str, taciaiflg: str):
     try:
         conn = get_connection()
         cursor = conn.cursor()
+        print("aaa")
 
-        sql = """
-            SELECT 1
-            FROM ADITHYA1.HTSTOCKQR
-            WHERE QR = ?
-              AND TACIAIFLG = '0'
-        """
+        # sql = """
+        #     SELECT 1
+        #     FROM TYKSFLIB.HTSTOCKQR
+        #     WHERE QR = ?
+        #       AND TACIAIFLG = ?
+        # """
 
-        cursor.execute(sql, [qr_code])
-
+        cursor.execute(sql, [qr_code, taciaiflg])
+        print("duplicateqr complete")
         row = cursor.fetchone()
 
         if row:
@@ -193,7 +197,7 @@ def check_httake(conf_serno, lot, destinat_cd, conf_rowno, partner_cd):
 
         sql = """
             SELECT COUNT(*)
-            FROM ADITHYA1.HTTAKE
+            FROM TYKSFLIB.HTTAKE
             WHERE CONFSERNO = ?
               AND LOT = ?
               AND DESTINATCD = ?
@@ -235,7 +239,7 @@ def check_gomast(material: str, symbol: str, partner_cd: int):
 
         sql = """
             SELECT GOMANO
-            FROM ADITHYA1.GOMAST
+            FROM PRDLIBF.GOMAST
             WHERE GOMANA = ?
               AND GOMATK = ?
               AND GOMASY = ?
@@ -285,7 +289,7 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         material    = fields[9].strip()
         symbol      = fields[10].strip()
         qty         = int(fields[11])
-
+        print("split complete")
         valid = check_httake(
             conf_serno,
             lot,
@@ -315,17 +319,16 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             material_value = ""
             symbol_value = ""
             partner_cd_value = 0
-
         
-
-        serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1       
+        serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1  
+        result = check_duplicate_qr(qr_code, taciaiflg)     
 
         conn = get_connection()
         cursor = conn.cursor()
 
         if inventory_flag == "完成品":
             sql = """
-            INSERT INTO ADITHYA1.HTSTOCKTAK
+            INSERT INTO TYKSFLIB.HTSTOCKTAK
             (
                 HTNM,
                 WAREHOUSCD,
@@ -380,7 +383,7 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             ]
         else:
             sql = """
-            INSERT INTO ADITHYA1.HTSTOCKTAT
+            INSERT INTO TYKSFLIB.HTSTOCKTAT
             (
                 HTNM,
                 WAREHOUSCD,
@@ -435,7 +438,7 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
         if inventory_flag == "立会い":
             cursor.execute("""
-                INSERT INTO ADITHYA1.HTSTOCKQR
+                INSERT INTO TYKSFLIB.HTSTOCKQR
                 (
                     HTNM,
                     WAREHOUSCD,
@@ -452,7 +455,7 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             ])
         else:
             cursor.execute("""
-                INSERT INTO ADITHYA1.HTSTOCKQR
+                INSERT INTO TYKSFLIB.HTSTOCKQR
                 (
                     HTNM,
                     WAREHOUSCD,
@@ -511,9 +514,9 @@ def delete_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         cursor = conn.cursor()
 
         if inventory_flag == "完成品":
-            table_name = "ADITHYA1.HTSTOCKTAK"
+            table_name = "TYKSFLIB.HTSTOCKTAK"
         else:
-            table_name = "ADITHYA1.HTSTOCKTAT"
+            table_name = "TYKSFLIB.HTSTOCKTAT"
 
         sql = f"""
             DELETE FROM {table_name}
@@ -536,7 +539,7 @@ def delete_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         taciaiflg = "0" if inventory_flag == "完成品" else "1"
 
         cursor.execute("""
-            DELETE FROM ADITHYA1.HTSTOCKQR
+            DELETE FROM TYKSFLIB.HTSTOCKQR
             WHERE HTNM = ?
             AND WAREHOUSCD = ?
             AND SERNO = ?
@@ -579,11 +582,11 @@ def detail_list(worker_code: str, warehouse_code: str, inventory_flag: str):
         cursor = conn.cursor()
 
         if inventory_flag == "立会い":
-            table_name = "ADITHYA1.HTSTOCKTAT"
+            table_name = "TYKSFLIB.HTSTOCKTAT"
         else:
-            table_name = "ADITHYA1.HTSTOCKTAK"
+            table_name = "TYKSFLIB.HTSTOCKTAK"
 
-        if table_name == "ADITHYA1.HTSTOCKTAK":
+        if table_name == "TYKSFLIB.HTSTOCKTAK":
             sql = f"""
                 SELECT
                     MATERIAL,
