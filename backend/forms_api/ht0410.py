@@ -61,13 +61,27 @@ def get_read_count(worker_code: str, warehouse_code: str, taciaiflg: str):
         conn = get_connection()
         cursor = conn.cursor()
 
-        sql = """
-            SELECT COUNT(*)
-            FROM TYKSFLIB.HTSTOCKTAK
-            WHERE HTNM = ?
-              AND WAREHOUSCD = ?
-              AND DELFLG = ''           
-        """
+        if taciaiflg == "1":
+            table_name = "TYKSFLIB.HTSTOCKTAT"
+        else:
+            table_name = "TYKSFLIB.HTSTOCKTAK"
+
+        if table_name == "TYKSFLIB.HTSTOCKTAK":
+            sql = f"""
+                SELECT COUNT(*)
+                FROM {table_name}
+                WHERE HTNM = ?
+                AND WAREHOUSCD = ?
+                AND DELFLG = ''
+            """
+        else:
+            sql = f"""
+                SELECT COUNT(*)
+                FROM {table_name}
+                WHERE HTNM = ?
+                AND WAREHOUSCD = ?
+            """
+
         print("code:", worker_code)
         print("Warehouse Code:", warehouse_code)
         print(sql)  
@@ -97,11 +111,16 @@ def get_serial_no(worker_code: str, warehouse_code: str, taciaiflg: str):
         conn = get_connection()
         cursor = conn.cursor()
 
-        sql = """
+        if taciaiflg == "1":
+            table_name = "TYKSFLIB.HTSTOCKTAT"
+        else:
+            table_name = "TYKSFLIB.HTSTOCKTAK"
+
+        sql = f"""
             SELECT MAX(SERNO)
-            FROM TYKSFLIB.HTSTOCKTAK
+            FROM {table_name}
             WHERE HTNM = ?
-              AND WAREHOUSCD = ?                  
+            AND WAREHOUSCD = ?
         """
 
         print("Worker Code:", worker_code)
@@ -266,52 +285,94 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         
         print(int(fields[11]))
 
-        serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1
-
-        if inventory_flag == "立会い":
-            table_name = "TYKSFLIB.HTSTOCKTAT"
-        else:
-            table_name = "TYKSFLIB.HTSTOCKTAK"
+        serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1       
 
         conn = get_connection()
         cursor = conn.cursor()
 
-        sql = f"""
-        INSERT INTO {table_name}
-        (
-            HTNM,
-            WAREHOUSCD,
-            SERNO,
-            ITEMCD,
-            MATERIAL,
-            SYMBOL,
-            PALLETUNIT,
-            PALLETQTY,
-            QTY,
-            PARTNERCD,
-            CREATEID,
-            CREATEDT,
-            INSPUPDFLG,
-            LASTID,
-            LASTDT,
-            DELFLG,
-            CONFSERNO,
-            LOT,
-            DESTINATCD,
-            CONFROWNO
-        )
-        VALUES
-        (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-            ?, CAST(CURRENT TIMESTAMP AS CHAR(26)),
-            ?, ?, ?, ?, ?, ?, ?, ?
-        )
-        """
-        print("Insert SQL:", sql)
-        print("exists =", exists)
-        print("material_value =", repr(material_value))
-        print("symbol_value =", repr(symbol_value))
-        print("symbol =", repr(symbol))
+        if inventory_flag == "完成品":
+            sql = """
+            INSERT INTO TYKSFLIB.HTSTOCKTAK
+            (
+                HTNM,
+                WAREHOUSCD,
+                SERNO,
+                ITEMCD,
+                MATERIAL,
+                SYMBOL,
+                PALLETUNIT,
+                PALLETQTY,
+                QTY,
+                PARTNERCD,
+                CREATEID,
+                CREATEDT,
+                INSPUPDFLG,
+                LASTID,
+                LASTDT,
+                DELFLG,
+                CONFSERNO,
+                LOT,
+                DESTINATCD,
+                CONFROWNO
+            )
+            VALUES
+            (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, CAST(CURRENT TIMESTAMP AS CHAR(26)),
+                ?, ?, ?, ?, ?, ?, ?, ?
+            )
+            """
+
+            params = [
+                worker_code,
+                int(warehouse_code),
+                serno,
+                item_cd,
+                material_value,
+                symbol_value,
+                pallet_unit,
+                1,
+                qty,
+                partner_cd_value,
+                int(worker_code),
+                "",
+                0,
+                "",
+                "",
+                conf_serno,
+                lot,
+                destinat_cd,
+                conf_rowno
+            ]
+        else:
+            sql = """
+            INSERT INTO TYKSFLIB.HTSTOCKTAT
+            (
+                HTNM,
+                WAREHOUSCD,
+                SERNO,
+                ITEMCD,
+                MATERIAL,
+                SYMBOL,
+                PALLETUNIT,
+                PALLETQTY,
+                QTY,
+                PARTNERCD,
+                CREATEID,
+                CREATEDT,
+                CONFSERNO,
+                LOT,
+                DESTINATCD,
+                CONFROWNO
+            )
+            VALUES
+            (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, CAST(CURRENT TIMESTAMP AS CHAR(26)),
+                ?, ?, ?, ?
+            )
+            """
+
         params = [
             worker_code,
             int(warehouse_code),
@@ -324,10 +385,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             qty,
             partner_cd_value,
             int(worker_code),
-            "",
-            0,
-            "",
-            "",
             conf_serno,
             lot,
             destinat_cd,
@@ -374,16 +431,19 @@ def detail_list(worker_code: str, warehouse_code: str, inventory_flag: str):
             table_name = "TYKSFLIB.HTSTOCKTAK"
 
         sql = f"""
-            SELECT
-                MATERIAL,
-                SYMBOL,
-                QTY
-            FROM {table_name}
-            WHERE HTNM = ?
-              AND WAREHOUSCD = ?
-              AND DELFLG = ''
-            ORDER BY SERNO
+        SELECT
+            MATERIAL,
+            SYMBOL,
+            QTY
+        FROM {table_name}
+        WHERE HTNM = ?
+        AND WAREHOUSCD = ?
         """
+
+        if table_name == "TYKSFLIB.HTSTOCKTAK":
+            sql += " AND DELFLG = ''"
+
+        sql += " ORDER BY SERNO"
 
         cursor.execute(sql, [worker_code, int(warehouse_code)])
 

@@ -45,6 +45,7 @@ const handleInput = () => {
     query: {
       code: code,
       mode: "入力",
+      inventoryFlag,
       taciaiflg
     },
   })
@@ -59,6 +60,7 @@ const handleDelete = () => {
     query: {
       code: code,
       mode: "削除",
+      inventoryFlag,
       taciaiflg
     },
   })
