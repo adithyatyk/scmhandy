@@ -87,7 +87,11 @@ const handleOk = async () => {
   try {
     const config = useRuntimeConfig()
     const apiBaseUrl = config.public.apiBaseUrl
-
+    console.log("Delete inventoryFlag =", inventoryFlag)
+    console.log("Delete body =", {
+      code,
+      inventoryFlag
+    })
     const res = await fetch(`${apiBaseUrl}/api/ht0400/delete-temp/`, {
       method: "DELETE",
       headers: {

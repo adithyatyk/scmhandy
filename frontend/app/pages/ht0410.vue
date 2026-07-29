@@ -102,7 +102,7 @@ const handleBack = () => {
 
       code: code,
 
-      inventoryFlag: "立会い",
+      inventoryFlag,
       taciaiflg
 
     }
@@ -563,6 +563,7 @@ const handleEnter = async () => {
           <button
             v-if="mode === '削除'"
             class="cancel-btn"
+            @click="handleBack"
           >
             取消
           </button>

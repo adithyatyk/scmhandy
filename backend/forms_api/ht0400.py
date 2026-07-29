@@ -14,14 +14,10 @@ def delete_temp_data(code: str, inventoryFlag: str):
             taciaiflg = "1"
 
         sql = """
-            DELETE FROM TYKSFLIB.HTSTOCKQR
+            DELETE FROM ADITHYA1.HTSTOCKQR
             WHERE HTNM = ?
               AND TACIAIFLG = ?
         """
-
-        print(sql)
-        print("Parameter:", code)
-        print("TACIAIFLG:", taciaiflg)
         cursor.execute(sql, [str(code), taciaiflg])
 
         rows = cursor.rowcount

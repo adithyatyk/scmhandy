@@ -10,6 +10,7 @@ from .ht0410 import check_duplicate_qr
 from .ht0100 import transfer_data
 from .ht0410 import insert_stocktak
 from .ht0410 import detail_list as get_detail_list
+from .ht0410 import delete_stocktak
 import json
 
 @csrf_exempt
@@ -193,7 +194,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM TYKSFLIB.MSTAFF
+        FROM ADITHYA1.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -222,7 +223,7 @@ def delete_temp(request):
         data = json.loads(request.body or "{}")
 
         worker_code = data.get("code")
-        inventory_flg = data.get("inventoryFlg")
+        inventory_flg = data.get("inventoryFlag")
 
         success = delete_temp_data(worker_code, inventory_flg)
 
@@ -355,12 +356,20 @@ def scan_qr(request):
             taciaiflg,
             inventory_flag
         )
+    elif mode == "削除":
+        result = delete_stocktak(
+            worker_code,
+            warehouse_code,
+            qr_code,
+            taciaiflg,
+            inventory_flag
+        )
 
         if not result["success"]:
             return JsonResponse({
                 "success": False,
-                "code": "E229",
-                "message": result["message"]
+                "code": result.get("code", "E229"),
+                "message": result.get("message", "")
             })
 
     return JsonResponse({
