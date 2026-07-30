@@ -194,7 +194,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM TYKSFLIB.MSTAFF
+        FROM ADITHYA1.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -326,37 +326,23 @@ def scan_qr(request):
     mode = data.get("mode", "").strip()
     inventory_flag = data.get("inventoryFlag", "").strip()
     taciaiflg = "0" if inventory_flag == "完成品" else "1"
-
-    print("Before get_serial_no")
-    next_serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1
-    print("After get_serial_no")
-
-    print("Before duplicate check")
-    result = check_duplicate_qr(qr_code, taciaiflg)
-    print("After duplicate check", result)
-    print("Mode =", mode)
+    
     if mode == "入力":
 
-        next_serno = get_serial_no(worker_code, warehouse_code, taciaiflg) + 1
-
-        # Duplicate check
         result = check_duplicate_qr(qr_code, taciaiflg)
 
         if result["duplicate"]:
             return JsonResponse({
                 "success": False,
-                "code": "E214",
-                "message": f"{worker_code}_{warehouse_code}_{next_serno}"
+                "code": "E214"
             })
 
-        # First character validation
         if len(qr_code) == 0 or qr_code[0] not in ["T", "G", "F"]:
             return JsonResponse({
                 "success": False,
                 "code": "E220"
             })
 
-        # Insert into HTSTOCKTAK
         result = insert_stocktak(
             worker_code,
             warehouse_code,
@@ -364,7 +350,16 @@ def scan_qr(request):
             taciaiflg,
             inventory_flag
         )
+
+        if not result["success"]:
+            return JsonResponse(result)
+
+        return JsonResponse({
+            "success": True
+        })
+
     elif mode == "削除":
+
         result = delete_stocktak(
             worker_code,
             warehouse_code,
@@ -374,15 +369,18 @@ def scan_qr(request):
         )
 
         if not result["success"]:
-            return JsonResponse({
-                "success": False,
-                "code": result.get("code", "E229"),
-                "message": result.get("message", "")
-            })
+            return JsonResponse(result)
 
-    return JsonResponse({
-        "success": True
-    })
+        return JsonResponse({
+            "success": True
+        })
+
+    else:
+        return JsonResponse({
+            "success": False,
+            "code": "E229",
+            "message": f"Unknown mode: {mode}"
+        })
 @csrf_exempt
 def transfer(request):
     if request.method != "POST":
