@@ -14,7 +14,7 @@ def delete_temp_data(code: str, inventoryFlag: str):
             taciaiflg = "1"
 
         sql = """
-            DELETE FROM ADITHYA1.HTSTOCKQR
+            DELETE FROM TYKSFLIB.HTSTOCKQR
             WHERE HTNM = ?
               AND TACIAIFLG = ?
         """

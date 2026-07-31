@@ -194,7 +194,7 @@ def worker_info(request):
 
     cur.execute("""
         SELECT NM, PW
-        FROM ADITHYA1.MSTAFF
+        FROM TYKSFLIB.MSTAFF
         WHERE SYSTEM3='1'
         AND DELFLG=''
         AND CD=?
@@ -340,7 +340,8 @@ def scan_qr(request):
         if len(qr_code) == 0 or qr_code[0] not in ["T", "G", "F"]:
             return JsonResponse({
                 "success": False,
-                "code": "E220"
+                "code": "E220",
+                "param": "確認用紙"
             })
 
         result = insert_stocktak(
