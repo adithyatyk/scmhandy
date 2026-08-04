@@ -1,6 +1,14 @@
 from django.urls import path
 from .ht0011 import validate_password
-from .ht_views import form_data, worker_info, delete_temp,warehouse_list,read_count,serial_no
+from .ht_views import (
+    form_data,
+    worker_info,
+    check_delete_temp,
+    delete_temp,
+    warehouse_list,
+    read_count,
+    serial_no
+)
 from .ht_views import scan_qr,transfer,detail_list
 urlpatterns = [
 
@@ -16,6 +24,11 @@ urlpatterns = [
     path(
         "worker-info/", 
         worker_info
+    ),
+
+    path(
+        "ht0400/check-delete/",
+        check_delete_temp
     ),
 
     path(

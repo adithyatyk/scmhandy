@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .as400 import get_connection
 from .ht0010 import fetch_staff_rows
-from .ht0400 import delete_temp_data
+from .ht0400 import delete_temp_data, get_temp_count
 from .ht0410 import get_warehouse_list
 from .ht0410 import get_read_count
 from .ht0410 import get_serial_no
@@ -216,21 +216,53 @@ def worker_info(request):
 import json
 
 @csrf_exempt
+def check_delete_temp(request):
+
+    if request.method != "POST":
+        return JsonResponse({"success": False}, status=405)
+
+    data = json.loads(request.body or "{}")
+
+    worker_code = data.get("code")
+    inventory_flg = data.get("inventoryFlag")
+
+    count = get_temp_count(worker_code, inventory_flg)
+
+    if count == 0:
+        return JsonResponse({
+            "success": True,
+            "code": "I203"
+        })
+
+    return JsonResponse({
+        "success": True,
+        "code": "Q204"
+    })
+
+@csrf_exempt
 def delete_temp(request):
 
-    if request.method == "DELETE":
+    if request.method != "DELETE":
+        return JsonResponse({"success": False}, status=405)
 
-        data = json.loads(request.body or "{}")
+    data = json.loads(request.body or "{}")
 
-        worker_code = data.get("code")
-        inventory_flg = data.get("inventoryFlag")
+    worker_code = data.get("code")
+    inventory_flg = data.get("inventoryFlag")
 
-        success = delete_temp_data(worker_code, inventory_flg)
+    success = delete_temp_data(worker_code, inventory_flg)
 
+    if success:
         return JsonResponse({
-            "success": success
+            "success": True,
+            "code": "I202"
         })
-        
+
+    return JsonResponse({
+        "success": False,
+        "code": "E229"
+    })
+            
 @csrf_exempt
 def warehouse_list(request):
 
@@ -382,17 +414,22 @@ def scan_qr(request):
             "code": "E229",
             "message": f"Unknown mode: {mode}"
         })
+        
 @csrf_exempt
 def transfer(request):
+
     if request.method != "POST":
         return JsonResponse({"success": False}, status=405)
 
-    body = json.loads(request.body)
+    body = json.loads(request.body or "{}")
+
     code = body.get("code")
+    confirm = body.get("confirm", False)
 
-    result = transfer_data(code)
+    result = transfer_data(code, confirm)
 
-    return JsonResponse(result)        
+    return JsonResponse(result)
+
 @csrf_exempt
 def detail_list(request):
 

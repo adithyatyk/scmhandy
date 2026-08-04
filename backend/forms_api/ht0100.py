@@ -2,7 +2,8 @@ import jpype
 import traceback
 from .as400 import get_connection
 
-def transfer_data(htnm):
+def transfer_data(htnm, confirm=False):
+
     conn = None
     cursor = None
     cs = None
@@ -11,46 +12,9 @@ def transfer_data(htnm):
         conn = get_connection()
         cursor = conn.cursor()
 
-        # --------------------------------------------------
-        # SQL01 : Get HT Information
-        # --------------------------------------------------
-        print("===================================")
-        print("SQL01")
-        print("HTNM =", htnm)
-
-        cursor.execute("""
-            SELECT SERNO, HTNM, SCANDATE
-            FROM TYKSFLIB.HTSTORAGE
-            WHERE HTNM = ?
-            FETCH FIRST 1 ROW ONLY
-        """, (htnm,))
-
-        row = cursor.fetchone()
-
-        if row is None:
-            return {
-                "success": False,
-                "messageCode": "E215"
-            }
-
-        empno = int(row[0])
-        pc = row[1].strip()
-
-        scan_date = str(row[2]).strip()
-        datetime = scan_date[:14]
-
-        print("SERNO    =", empno)
-        print("PC       =", pc)
-        print("SCANDATE =", scan_date)
-        print("DATETIME =", datetime)
-
-        # --------------------------------------------------
-        # SQL10 : Check HTSTORAGE
-        # --------------------------------------------------
-        print("===================================")
-        print("SQL10")
-        print("HTNM =", htnm)
-
+        # ---------------------------------------
+        # SQL10 : Check Data
+        # ---------------------------------------
         cursor.execute("""
             SELECT COUNT(*)
             FROM TYKSFLIB.HTSTORAGE
@@ -61,12 +25,43 @@ def transfer_data(htnm):
 
         print("COUNT =", count)
 
+        # No data
         if count == 0:
             return {
                 "success": False,
                 "messageCode": "E215"
             }
 
+        # Data exists -> ask confirmation
+        if not confirm:
+            return {
+                "success": False,
+                "messageCode": "Q204"
+            }
+
+        # ---------------------------------------
+        # SQL01 : Get HT Information
+        # ---------------------------------------
+        cursor.execute("""
+            SELECT SERNO,
+                   HTNM,
+                   SCANDATE
+            FROM TYKSFLIB.HTSTORAGE
+            WHERE HTNM = ?
+            FETCH FIRST 1 ROW ONLY
+        """, (htnm,))
+
+        row = cursor.fetchone()
+
+        empno = int(row[0])
+        pc = row[1].strip()
+
+        scan_date = str(row[2]).strip()
+        datetime = scan_date[:14]
+
+        # ---------------------------------------
+        # XML
+        # ---------------------------------------
         xml_data = """
         <root>
         <data>
@@ -180,12 +175,9 @@ def transfer_data(htnm):
         </root>
         """
 
-# --------------------------------------------------
+        # ---------------------------------------
         # Stored Procedure
-        # --------------------------------------------------
-        print("===================================")
-        print("CALL spAddHtTake")
-
+        # ---------------------------------------
         jconn = conn.jconn
 
         cs = jconn.prepareCall(
@@ -200,8 +192,8 @@ def transfer_data(htnm):
         Types = jpype.JClass("java.sql.Types")
 
         cs.registerOutParameter(
-            jpype.JInt(5),
-            jpype.JInt(Types.CHAR)
+            5,
+            Types.CHAR
         )
 
         cs.execute()
@@ -219,20 +211,16 @@ def transfer_data(htnm):
 
         conn.commit()
 
-        # --------------------------------------------------
-        # SQL11 : Delete HTSTORAGE
-        # --------------------------------------------------
-        print("===================================")
-        print("SQL11")
-        print("HTNM =", htnm)
-
+        # ---------------------------------------
+        # SQL11 : Delete
+        # ---------------------------------------
         cursor.execute("""
             DELETE
             FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
         """, (htnm,))
 
-        print("DELETE COUNT =", cursor.rowcount)
+        print("DELETE =", cursor.rowcount)
 
         conn.commit()
 
@@ -253,6 +241,7 @@ def transfer_data(htnm):
         }
 
     finally:
+
         if cs:
             cs.close()
 
