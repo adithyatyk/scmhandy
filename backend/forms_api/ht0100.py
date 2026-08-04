@@ -2,6 +2,7 @@ import jpype
 import traceback
 from .as400 import get_connection
 
+
 def transfer_data(htnm, confirm=False):
 
     conn = None
@@ -9,6 +10,7 @@ def transfer_data(htnm, confirm=False):
     cs = None
 
     try:
+
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -25,14 +27,13 @@ def transfer_data(htnm, confirm=False):
 
         print("COUNT =", count)
 
-        # No data
         if count == 0:
             return {
                 "success": False,
                 "messageCode": "E215"
             }
 
-        # Data exists -> ask confirmation
+        # Ask confirmation
         if not confirm:
             return {
                 "success": False,
@@ -40,12 +41,13 @@ def transfer_data(htnm, confirm=False):
             }
 
         # ---------------------------------------
-        # SQL01 : Get HT Information
+        # SQL01 : Get Header Information
         # ---------------------------------------
         cursor.execute("""
-            SELECT SERNO,
-                   HTNM,
-                   SCANDATE
+            SELECT
+                SERNO,
+                HTNM,
+                SCANDATE
             FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
             FETCH FIRST 1 ROW ONLY
@@ -53,128 +55,80 @@ def transfer_data(htnm, confirm=False):
 
         row = cursor.fetchone()
 
+        if row is None:
+            return {
+                "success": False,
+                "messageCode": "E215"
+            }
+
         empno = int(row[0])
-        pc = row[1].strip()
+        pc = str(row[1]).strip()
 
         scan_date = str(row[2]).strip()
         datetime = scan_date[:14]
 
-        # ---------------------------------------
-        # XML
-        # ---------------------------------------
-        xml_data = """
-        <root>
-        <data>
-        <orderFy>0</orderFy>
-        <orderMm>0</orderMm>
-        <orderSerNo>0</orderSerNo>
-        <rowNo>1</rowNo>
-        <partnerCd>12</partnerCd>
-        <itemCd>7260009</itemCd>
-        <material>SH1</material>
-        <symbol>YA-4B</symbol>
-        <qty>252</qty>
-        <slipNo>180344</slipNo>
-        <shippingDate>20180622</shippingDate>
-        <confirmSerNo>1</confirmSerNo>
-        <lot>20190208</lot>
-        <destinationCd>721885</destinationCd>
-        <confirmRowNo>9</confirmRowNo>
-        <scanDate>2019/02/08 15:10:33</scanDate>
-        </data>
-        <data>
-        <orderFy>0</orderFy>
-        <orderMm>0</orderMm>
-        <orderSerNo>0</orderSerNo>
-        <rowNo>2</rowNo>
-        <partnerCd>12</partnerCd>
-        <itemCd>7260010</itemCd>
-        <material>SH1</material>
-        <symbol>YA-4C</symbol>
-        <qty>320</qty>
-        <slipNo>180344</slipNo>
-        <shippingDate>20180622</shippingDate>
-        <confirmSerNo>1</confirmSerNo>
-        <lot>20190208</lot>
-        <destinationCd>721885</destinationCd>
-        <confirmRowNo>9</confirmRowNo>
-        <scanDate>2019/02/08 15:10:33</scanDate>
-        </data>
-        <data>
-        <orderFy>0</orderFy>
-        <orderMm>0</orderMm>
-        <orderSerNo>0</orderSerNo>
-        <rowNo>3</rowNo>
-        <partnerCd>12</partnerCd>
-        <itemCd>7260012</itemCd>
-        <material>SH1</material>
-        <symbol>YA-6</symbol>
-        <qty>98</qty>
-        <slipNo>180344</slipNo>
-        <shippingDate>20180622</shippingDate>
-        <confirmSerNo>1</confirmSerNo>
-        <lot>20190208</lot>
-        <destinationCd>721885</destinationCd>
-        <confirmRowNo>9</confirmRowNo>
-        <scanDate>2019/02/08 15:10:33</scanDate>
-        </data>
-        <data>
-        <orderFy>0</orderFy>
-        <orderMm>0</orderMm>
-        <orderSerNo>0</orderSerNo>
-        <rowNo>4</rowNo>
-        <partnerCd>12</partnerCd>
-        <itemCd>7260014</itemCd>
-        <material>SH1</material>
-        <symbol>YA-6C</symbol>
-        <qty>120</qty>
-        <slipNo>180344</slipNo>
-        <shippingDate>20180622</shippingDate>
-        <confirmSerNo>1</confirmSerNo>
-        <lot>20190208</lot>
-        <destinationCd>721885</destinationCd>
-        <confirmRowNo>9</confirmRowNo>
-        <scanDate>2019/02/08 15:10:33</scanDate>
-        </data>
-        <data>
-        <orderFy>0</orderFy>
-        <orderMm>0</orderMm>
-        <orderSerNo>0</orderSerNo>
-        <rowNo>5</rowNo>
-        <partnerCd>12</partnerCd>
-        <itemCd>7260015</itemCd>
-        <material>SH1</material>
-        <symbol>YA-6C-2</symbol>
-        <qty>120</qty>
-        <slipNo>180344</slipNo>
-        <shippingDate>20180622</shippingDate>
-        <confirmSerNo>1</confirmSerNo>
-        <lot>20190208</lot>
-        <destinationCd>721885</destinationCd>
-        <confirmRowNo>9</confirmRowNo>
-        <scanDate>2019/02/08 15:10:33</scanDate>
-        </data>
-        <data>
-        <orderFy>0</orderFy>
-        <orderMm>0</orderMm>
-        <orderSerNo>0</orderSerNo>
-        <rowNo>6</rowNo>
-        <partnerCd>12</partnerCd>
-        <itemCd>7260017</itemCd>
-        <material>SH1</material>
-        <symbol>YA-7Cｶｲ</symbol>
-        <qty>210</qty>
-        <slipNo>180344</slipNo>
-        <shippingDate>20180622</shippingDate>
-        <confirmSerNo>1</confirmSerNo>
-        <lot>20190208</lot>
-        <destinationCd>721885</destinationCd>
-        <confirmRowNo>9</confirmRowNo>
-        <scanDate>2019/02/08 15:10:33</scanDate>
-        </data>
-        </root>
-        """
+        print("SERNO    =", empno)
+        print("PC       =", pc)
+        print("DATETIME =", datetime)
 
+        # ---------------------------------------
+        # Build XML from HTSTORAGE
+        # ---------------------------------------
+
+        cursor.execute("""
+            SELECT
+                ORDERFY,
+                ORDERMM,
+                ORDERSERNO,
+                ROWNO,
+                PARTNERCD,
+                ITEMCD,
+                MATERIAL,
+                SYMBOL,
+                QTY,
+                SLIPNO,
+                DELIVERY,
+                CONFIRMNO,
+                LOT,
+                SUPPLIERCD,
+                CONFIRMROW,
+                SCANDATE
+            FROM TYKSFLIB.HTSTORAGE
+            WHERE HTNM = ?
+            ORDER BY ROWNO
+        """, (htnm,))
+
+        rows = cursor.fetchall()
+
+        xml_data = "<root>"
+
+        for r in rows:
+
+            xml_data += f"""
+<data>
+    <orderFy>{r[0]}</orderFy>
+    <orderMm>{r[1]}</orderMm>
+    <orderSerNo>{r[2]}</orderSerNo>
+    <rowNo>{r[3]}</rowNo>
+    <partnerCd>{r[4]}</partnerCd>
+    <itemCd>{r[5]}</itemCd>
+    <material>{str(r[6]).strip()}</material>
+    <symbol>{str(r[7]).strip()}</symbol>
+    <qty>{r[8]}</qty>
+    <slipNo>{r[9]}</slipNo>
+    <shippingDate>{r[10]}</shippingDate>
+    <confirmSerNo>{r[11]}</confirmSerNo>
+    <lot>{r[12]}</lot>
+    <destinationCd>{str(r[13]).strip()}</destinationCd>
+    <confirmRowNo>{r[14]}</confirmRowNo>
+    <scanDate>{str(r[15]).strip()}</scanDate>
+</data>
+"""
+
+        xml_data += "</root>"
+
+        print("===================================")
+        print(xml_data)
         # ---------------------------------------
         # Stored Procedure
         # ---------------------------------------
@@ -191,10 +145,7 @@ def transfer_data(htnm, confirm=False):
 
         Types = jpype.JClass("java.sql.Types")
 
-        cs.registerOutParameter(
-            5,
-            Types.CHAR
-        )
+        cs.registerOutParameter(5, Types.CHAR)
 
         cs.execute()
 
@@ -212,7 +163,7 @@ def transfer_data(htnm, confirm=False):
         conn.commit()
 
         # ---------------------------------------
-        # SQL11 : Delete
+        # Delete HTSTORAGE
         # ---------------------------------------
         cursor.execute("""
             DELETE
@@ -220,7 +171,7 @@ def transfer_data(htnm, confirm=False):
             WHERE HTNM = ?
         """, (htnm,))
 
-        print("DELETE =", cursor.rowcount)
+        print("DELETE COUNT =", cursor.rowcount)
 
         conn.commit()
 
@@ -241,7 +192,6 @@ def transfer_data(htnm, confirm=False):
         }
 
     finally:
-
         if cs:
             cs.close()
 
@@ -249,4 +199,4 @@ def transfer_data(htnm, confirm=False):
             cursor.close()
 
         if conn:
-            conn.close()
+            conn.close()        
