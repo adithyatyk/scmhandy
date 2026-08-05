@@ -1,6 +1,6 @@
 import jpype
 import traceback
-from .as400 import get_connection
+from .connection import get_connection
 
 
 def transfer_data(htnm, confirm=False):

@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .as400 import get_connection
+from .connection import get_connection
 import json
 
 @csrf_exempt

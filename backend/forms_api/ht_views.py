@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .as400 import get_connection
+from .connection import get_connection
 from .ht0010 import fetch_staff_rows
 from .ht0400 import delete_temp_data, get_temp_count
 from .ht0410 import get_warehouse_list
@@ -373,7 +373,7 @@ def scan_qr(request):
             return JsonResponse({
                 "success": False,
                 "code": "E220",
-                "param": "確認用紙"
+                "param": "確認用"
             })
 
         result = insert_stocktak(

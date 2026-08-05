@@ -1,4 +1,4 @@
-from .as400 import get_connection
+from .connection import get_connection
 from datetime import datetime
 
 def get_warehouse_list():

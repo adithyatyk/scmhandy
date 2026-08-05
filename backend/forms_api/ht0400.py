@@ -1,4 +1,4 @@
-from .as400 import get_connection
+from .connection import get_connection
 
 
 def get_temp_count(code: str, inventoryFlag: str):
