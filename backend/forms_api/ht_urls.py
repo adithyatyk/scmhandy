@@ -9,7 +9,8 @@ from .ht_views import (
     read_count,
     serial_no
 )
-from .ht_views import scan_qr,transfer,detail_list
+from .ht_views import (scan_qr,transfer,detail_list)
+from .ht_views import (ht3100_check_transfer,ht3100_delete)
 urlpatterns = [
 
     path(
@@ -64,7 +65,18 @@ urlpatterns = [
     path(
         "ht0410/list/",
         detail_list
-    )
+    ),
+
+    path(
+        "ht3100/check-transfer/",
+        ht3100_check_transfer
+    ),
+
+
+    path(
+        "ht3100/delete/",
+        ht3100_delete
+    ),
     
 ]
 

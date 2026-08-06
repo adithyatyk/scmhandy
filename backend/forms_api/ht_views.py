@@ -2,15 +2,21 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .connection import get_connection
 from .ht0010 import fetch_staff_rows
-from .ht0400 import delete_temp_data, get_temp_count
+from .ht0400 import (
+    delete_temp_data,
+    get_temp_count
+)
 from .ht0410 import get_warehouse_list
 from .ht0410 import get_read_count
 from .ht0410 import get_serial_no
 from .ht0410 import check_duplicate_qr
-from .ht0100 import transfer_data
+from .ht0100 import transfer_data as ht0100_transfer
 from .ht0410 import insert_stocktak
 from .ht0410 import detail_list as get_detail_list
 from .ht0410 import delete_stocktak
+from .ht3100 import (
+    transfer_data as ht3100_transfer
+)
 import json
 
 @csrf_exempt
@@ -426,7 +432,10 @@ def transfer(request):
     code = body.get("code")
     confirm = body.get("confirm", False)
 
-    result = transfer_data(code, confirm)
+    result = ht0100_transfer(
+        code,
+        confirm
+    )
 
     return JsonResponse(result)
 
@@ -452,3 +461,68 @@ def detail_list(request):
         "success": True,
         "rows": rows
     })
+
+@csrf_exempt
+def ht3100_check_transfer(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        code = data.get("code")
+        inventory_flag = data.get("inventoryFlag")
+        confirm = data.get("confirm", False)
+
+        result = ht3100_transfer(
+            code,
+            inventory_flag,
+            confirm
+        )
+
+        return JsonResponse(result)
+
+    except Exception as e:
+
+        print("HT3100 Transfer Error:", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E103"
+        })
+@csrf_exempt
+def ht3100_delete(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        code = data.get("code")
+        inventory_flag = data.get("inventoryFlag")
+        confirm = data.get("confirm", False)
+
+        result = ht3100_delete_temp_data(
+            code,
+            inventory_flag,
+            confirm
+        )
+
+        return JsonResponse(result)
+
+    except Exception as e:
+
+        print("HT3100 Delete Error:", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E206"
+        })
