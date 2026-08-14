@@ -77,6 +77,8 @@ urlpatterns = [
         "ht3100/delete/",
         ht3100_delete
     ),
+
+    
     
 ]
 

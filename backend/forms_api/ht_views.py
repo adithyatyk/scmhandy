@@ -15,7 +15,8 @@ from .ht0410 import insert_stocktak
 from .ht0410 import detail_list as get_detail_list
 from .ht0410 import delete_stocktak
 from .ht3100 import (
-    transfer_data as ht3100_transfer
+    transfer_data as ht3100_transfer,
+    delete_ht3110_temp_data as ht3100_delete_temp_data
 )
 import json
 
@@ -379,7 +380,7 @@ def scan_qr(request):
             return JsonResponse({
                 "success": False,
                 "code": "E220",
-                "param": "確認用"
+                "param": "確認用紙"
             })
 
         result = insert_stocktak(

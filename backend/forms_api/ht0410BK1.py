@@ -223,41 +223,41 @@ def check_httake(conf_serno, lot, destinat_cd, conf_rowno, partner_cd):
             cursor.close()
         if conn:
             conn.close()
-# def check_gomast(material: str, symbol: str, partner_cd: int):
+def check_gomast(material: str, symbol: str, partner_cd: int):
 
-#     conn = None
-#     cursor = None
+    conn = None
+    cursor = None
     
-#     try:
-#         conn = get_connection()
-#         cursor = conn.cursor()        
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()        
 
-#         sql = """
-#             SELECT GOMANO
-#             FROM PRDLIBF.GOMAST
-#             WHERE GOMANA = ?
-#               AND GOMATK = ?
-#               AND GOMASY = ?
-#         """
+        sql = """
+            SELECT GOMANO
+            FROM PRDLIBF.GOMAST
+            WHERE GOMANA = ?
+              AND GOMATK = ?
+              AND GOMASY = ?
+        """
 
-#         cursor.execute(sql, [material, symbol, partner_cd])
+        cursor.execute(sql, [material, symbol, partner_cd])
 
-#         row = cursor.fetchone()
+        row = cursor.fetchone()
 
-#         if row and str(row[0]).strip() != "":
-#             return True
+        if row and str(row[0]).strip() != "":
+            return True
 
-#         return False
+        return False
 
-#     except Exception as e:
-#         print("GOMAST Error:", e)
-#         return False
+    except Exception as e:
+        print("GOMAST Error:", e)
+        return False
 
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaiflg: str,inventory_flag: str):
 
     conn = None
@@ -540,39 +540,21 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             # GOMAST CHECK
             # =================================================
 
-            # exists = check_gomast(
-            #     material,
-            #     symbol,
-            #     partner_cd
-            # )
+            exists = check_gomast(
+                material,
+                symbol,
+                partner_cd
+            )
 
-            # if exists:
-            #     material_value = material
-            #     symbol_value = symbol
-            #     partner_cd_value = partner_cd
-            # else:
-            #     material_value = ""
-            #     symbol_value = ""
-            #     partner_cd_value = 0
-            count = check_httake(
-                    conf_serno,
-                    lot,
-                    destinat_cd,
-                    conf_rowno,
-                    partner_cd
-                )
+            if exists:
+                material_value = material
+                symbol_value = symbol
+                partner_cd_value = partner_cd
+            else:
+                material_value = ""
+                symbol_value = ""
+                partner_cd_value = 0
 
-            print("HTTAKE Count:", count)
-
-            if count > 0:
-                return {
-                    "success": False,
-                    "code": "E226"
-                }
-
-            material_value = material
-            symbol_value = symbol
-            partner_cd_value = partner_cd
 
             # =================================================
             # INSERT

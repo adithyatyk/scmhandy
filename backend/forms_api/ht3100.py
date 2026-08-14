@@ -145,10 +145,6 @@ def transfer_data(htnm, inventory_flag, confirm=False):
         # Build XML
         # ---------------------------------------
 
-        # ---------------------------------------
-# Build XML
-# ---------------------------------------
-
         xml_data = "<root>"
 
         for r in rows:
@@ -191,7 +187,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
 
             cs = jconn.prepareCall(
                 "{CALL TYKSFLIB.spDelHtLeave(?,?,?,?,?)}"
-            )
+            )   
 
         cs.setInt(1, empno)
         cs.setString(2, pc)
@@ -305,3 +301,145 @@ def transfer_data(htnm, inventory_flag, confirm=False):
 
         if conn:
             conn.close()
+def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # ---------------------------------------
+        # SQL10 / SQL11 : Check temporary data
+        # ---------------------------------------
+
+        if inventory_flag == "外注品その他処理":
+
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM TYKSFLIB.HTREJECT
+                WHERE HTNM = ?
+                  AND PROCESSFLG <> 5
+            """, (htnm,))
+
+        else:
+
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM TYKSFLIB.HTREJECT
+                WHERE HTNM = ?
+                  AND PROCESSFLG = 5
+            """, (htnm,))
+
+        count = cursor.fetchone()[0]
+
+        print("DELETE TEMP COUNT =", count)
+
+        # ---------------------------------------
+        # No temporary data
+        # ---------------------------------------
+
+        if count == 0:
+            return {
+                "success": False,
+                "messageCode": "E215"
+            }
+
+        # ---------------------------------------
+        # Confirmation Q204
+        # ---------------------------------------
+
+        if not confirm:
+
+            if inventory_flag == "外注品その他処理":
+                param = "外注品その他"
+            else:
+                param = "Blank"
+
+            return {
+                "success": False,
+                "messageCode": "Q204",
+                "param": param
+            }
+
+        # ---------------------------------------
+        # SQL10 / SQL11 : Delete temporary data
+        # ---------------------------------------
+
+        if inventory_flag == "外注品その他処理":
+
+            cursor.execute("""
+                DELETE FROM TYKSFLIB.HTREJECT
+                WHERE HTNM = ?
+                  AND PROCESSFLG <> 5
+            """, (htnm,))
+
+        else:
+
+            cursor.execute("""
+                DELETE FROM TYKSFLIB.HTREJECT
+                WHERE HTNM = ?
+                  AND PROCESSFLG = 5
+            """, (htnm,))
+
+        deleted_count = cursor.rowcount
+        print("sql")
+        print("DELETE COUNT =", deleted_count)
+
+        # ---------------------------------------
+        # Delete failed
+        # ---------------------------------------
+
+        if deleted_count <= 0:
+
+            conn.rollback()
+
+            if inventory_flag == "外注品その他処理":
+                param = "外注品その他削除中に"
+            else:
+                param = "出荷取消削除中に"
+
+            return {
+                "success": False,
+                "messageCode": "E206",
+                "param": param
+            }
+
+        # ---------------------------------------
+        # Delete success
+        # ---------------------------------------
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "messageCode": "I202"
+        }
+
+    except Exception:
+
+        if conn:
+            conn.rollback()
+
+        traceback.print_exc()
+
+        if inventory_flag == "外注品その他処理":
+            param = "外注品その他削除中に"
+        else:
+            param = "出荷取消削除中に"
+
+        return {
+            "success": False,
+            "messageCode": "E206",
+            "param": param
+        }
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()            
