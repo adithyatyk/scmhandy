@@ -18,8 +18,6 @@ def get_warehouse_list():
             ORDER BY STOCCD
         """
 
-        print(sql)
-
         cursor.execute(sql)
 
         rows = []
@@ -35,7 +33,6 @@ def get_warehouse_list():
 
     except Exception as e:
 
-        print("Error:", e)
         return []
 
     finally:
@@ -81,10 +78,7 @@ def get_read_count(worker_code: str, warehouse_code: str, taciaiflg: str):
                 WHERE HTNM = ?
                 AND WAREHOUSCD = ?
             """
-
-        print("code:", worker_code)
-        print("Warehouse Code:", warehouse_code)
-        print(sql)  
+        
         cursor.execute(sql, [worker_code, int(warehouse_code)])
 
         row = cursor.fetchone()
@@ -92,7 +86,7 @@ def get_read_count(worker_code: str, warehouse_code: str, taciaiflg: str):
         return int(row[0]) if row else 0
 
     except Exception as e:
-        print("Error:", e)
+
         return 0
 
     finally:
@@ -122,25 +116,20 @@ def get_serial_no(worker_code: str, warehouse_code: str, taciaiflg: str):
             WHERE HTNM = ?
             AND WAREHOUSCD = ?
         """
-
-        print("Worker Code:", worker_code)
-        print("Warehouse Code:", warehouse_code)
-        print(sql)
-
         cursor.execute(sql, [worker_code, int(warehouse_code)])
-        print("MAXIMUM")
+       
         row = cursor.fetchone()
-        print("Fetched row:", row)
+        
 
         if row and row[0] is not None:
-            print("Returning:", int(row[0]))
+            
             return int(row[0])
 
-        print("Returning 0")
+        
         return 0
 
     except Exception as e:
-        print("Error:", e)
+        
         return 0
 
     finally:
@@ -167,7 +156,7 @@ def check_duplicate_qr(qr_code: str, taciaiflg: str):
         """
 
         cursor.execute(sql, [qr_code, taciaiflg])
-        print("duplicateqr complete")
+        
         row = cursor.fetchone()
 
         if row:
@@ -176,7 +165,7 @@ def check_duplicate_qr(qr_code: str, taciaiflg: str):
         return {"duplicate": False}
 
     except Exception as e:
-        print("Error:", e)
+        
         return {"duplicate": False}
 
     finally:
@@ -203,9 +192,7 @@ def check_httake(conf_serno, lot, destinat_cd, conf_rowno, partner_cd):
               AND CONFROWNO = ?
               AND PARTNERCD = ?
               AND SHIPMENFLG <> ''
-        """
-        print("check_httake Parameters:", conf_serno, lot, destinat_cd, conf_rowno, partner_cd)
-        print("check_httake SQL:", sql)
+        """        
         cursor.execute(sql, [
             conf_serno,
             lot,
@@ -223,41 +210,7 @@ def check_httake(conf_serno, lot, destinat_cd, conf_rowno, partner_cd):
             cursor.close()
         if conn:
             conn.close()
-# def check_gomast(material: str, symbol: str, partner_cd: int):
 
-#     conn = None
-#     cursor = None
-    
-#     try:
-#         conn = get_connection()
-#         cursor = conn.cursor()        
-
-#         sql = """
-#             SELECT GOMANO
-#             FROM PRDLIBF.GOMAST
-#             WHERE GOMANA = ?
-#               AND GOMATK = ?
-#               AND GOMASY = ?
-#         """
-
-#         cursor.execute(sql, [material, symbol, partner_cd])
-
-#         row = cursor.fetchone()
-
-#         if row and str(row[0]).strip() != "":
-#             return True
-
-#         return False
-
-#     except Exception as e:
-#         print("GOMAST Error:", e)
-#         return False
-
-#     finally:
-#         if cursor:
-#             cursor.close()
-#         if conn:
-#             conn.close()
 def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaiflg: str,inventory_flag: str):
 
     conn = None
@@ -265,13 +218,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
     try:
         fields = qr_code.strip().split(",")
-
-        print("========================================")
-        print("QR INPUT:")
-        print(qr_code)
-        print("========================================")
-        print("Total fields:", len(fields))
-        print("Fields:", fields)
 
         if len(fields) < 6:
             return {
@@ -282,8 +228,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
         conf_type = fields[0].strip()
 
-        print("conf_type:", conf_type)
-
         # =====================================================
         # COMMON HEADER
         # =====================================================
@@ -292,14 +236,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         lot = int(fields[2])
         conf_serno = int(fields[3])
         destinat_cd = int(fields[4])
-
-        print("----------------------------------------")
-        print("HEADER")
-        print("partner_cd :", partner_cd)
-        print("lot        :", lot)
-        print("conf_serno :", conf_serno)
-        print("destinat_cd:", destinat_cd)
-        print("----------------------------------------")
 
         # =====================================================
         # G / T
@@ -316,7 +252,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             detail_fields = fields[5:]
 
             if len(detail_fields) % 4 != 0:
-                print("ERROR: G/T detail field count is not multiple of 4")
 
                 return {
                     "success": False,
@@ -342,32 +277,12 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
                 details.append(detail)
 
-                print(f"DETAIL {len(details)}:")
-                print("  item_cd :", item_cd)
-                print("  material:", material)
-                print("  symbol  :", symbol)
-                print("  qty     :", qty)
-
-        # =====================================================
-        # F
-        # Detail = 7 fields
-        #
-        # Period
-        # month
-        # serial8
-        # item_cd
-        # material
-        # symbol
-        # qty
-        # =====================================================
-
         elif conf_type == "F":
 
             detail_fields = fields[5:]
 
             if len(detail_fields) % 7 != 0:
-                print("ERROR: F detail field count is not multiple of 7")
-
+                
                 return {
                     "success": False,
                     "code": "E220",
@@ -398,22 +313,11 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
                 details.append(detail)
 
-                print(f"DETAIL {len(details)}:")
-                print("  period  :", period)
-                print("  month   :", month)
-                print("  serial8 :", serial8)
-                print("  item_cd :", item_cd)
-                print("  material:", material)
-                print("  symbol  :", symbol)
-                print("  qty     :", qty)
-
         # =====================================================
         # INVALID CONF TYPE
         # =====================================================
 
         else:
-
-            print("ERROR: Unknown conf_type:", conf_type)
 
             return {
                 "success": False,
@@ -421,9 +325,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
                 "param": "確認用紙"
             }
 
-        print("----------------------------------------")
-        print("Total details:", len(details))
-        print("========================================")   
 
         # =====================================================
         # GET FIRST SERNO
@@ -443,14 +344,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             table_name = "TYKSFLIB.HTSTOCKTAK"
         else:
             table_name = "TYKSFLIB.HTSTOCKTAT"
-
-        print("========================================")
-        print("DELETE PREVIOUS DATA")
-        print("TABLE:", table_name)
-        print("HTNM:", worker_code)
-        print("WAREHOUSCD:", warehouse_code)
-        print("TACIAIFLG:", taciaiflg)
-        print("========================================")
 
         # -----------------------------------------------------
         # Delete previous stock/detail data
@@ -472,32 +365,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
         stock_deleted = cursor.rowcount
 
-        print("Previous stock rows deleted:", stock_deleted)
-
-        # -----------------------------------------------------
-        # Delete previous QR data
-        # -----------------------------------------------------
-
-        # delete_qr_sql = """
-        #     DELETE FROM TYKSFLIB.HTSTOCKQR
-        #     WHERE HTNM = ?
-        #     AND WAREHOUSCD = ?
-        #     AND TACIAIFLG = ?
-        # """
-
-        # cursor.execute(
-        #     delete_qr_sql,
-        #     [
-        #         worker_code,
-        #         int(warehouse_code),
-        #         taciaiflg
-        #     ]
-        # )
-
-        # qr_deleted = cursor.rowcount
-
-        # print("Previous QR rows deleted:", qr_deleted)
-
         # =====================================================
         # PROCESS EACH DETAIL
         # =====================================================
@@ -511,15 +378,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             symbol = detail["symbol"]
             qty = detail["qty"]
 
-            print("----------------------------------------")
-            print("PROCESSING DETAIL")
-            print("CONFROWNO:", conf_rowno)
-            print("item_cd :", item_cd)
-            print("material:", material)
-            print("symbol  :", symbol)
-            print("qty     :", qty)
-            print("----------------------------------------")
-
             count = check_httake(
                 conf_serno,
                 lot,
@@ -528,32 +386,12 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
                 partner_cd
             )
 
-            print("HTTAKE Count:", count)
-
             if count > 0:
                 return {
                     "success": False,
                     "code": "E226"
                 }
 
-            # =================================================
-            # GOMAST CHECK
-            # =================================================
-
-            # exists = check_gomast(
-            #     material,
-            #     symbol,
-            #     partner_cd
-            # )
-
-            # if exists:
-            #     material_value = material
-            #     symbol_value = symbol
-            #     partner_cd_value = partner_cd
-            # else:
-            #     material_value = ""
-            #     symbol_value = ""
-            #     partner_cd_value = 0
             count = check_httake(
                     conf_serno,
                     lot,
@@ -561,8 +399,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
                     conf_rowno,
                     partner_cd
                 )
-
-            print("HTTAKE Count:", count)
 
             if count > 0:
                 return {
@@ -682,16 +518,12 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
                     conf_rowno
                 ]
 
-            print("Parameter count:", len(params))
-
             for i, p in enumerate(params, 1):
-                print(f"P{i}: {p!r} ({type(p).__name__})")
-                print("INSERT QUERY:")
-                print(sql)
-            cursor.execute(sql, params)
+ 
+                cursor.execute(sql, params)
 
-            # Next detail gets next SERNO
-            serno += 1
+                # Next detail gets next SERNO
+                serno += 1
 
         # =====================================================
         # GET NEXT SERNO FOR HTSTOCKQR
@@ -715,14 +547,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             qr_serno = int(row[0]) + 1
         else:
             qr_serno = 1
-
-        print("========================================")
-        print("NEXT HTSTOCKQR SERNO:", qr_serno)
-        print("HTNM:", worker_code)
-        print("WAREHOUSCD:", warehouse_code)
-        print("TACIAIFLG:", taciaiflg)
-        print("========================================")
-
 
         # =====================================================
         # INSERT HTSTOCKQR
@@ -753,7 +577,6 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         }
 
     except Exception as e:
-        print("Insert Error:", e)
 
         if conn:
             try:
@@ -891,12 +714,7 @@ def check_delete_stocktak(
                 partner_cd
             )
 
-            print(
-                "DELETE CHECK HTTAKE:",
-                "CONFROWNO =", conf_rowno,
-                "COUNT =", count
-            )
-
+           
             if count > 0:
 
                 return {
@@ -908,18 +726,12 @@ def check_delete_stocktak(
         # All checks passed
         # -----------------------------
 
-        print("DELETE CHECK PASSED")
-        print("HTTAKE COUNT = 0")
-        print("Returning Q204")
-
         return {
             "success": True,
             "code": "Q204"
         }
 
     except Exception as e:
-
-        print("check_delete_stocktak Error:", e)
 
         return {
             "success": False,
@@ -957,21 +769,6 @@ def delete_stocktak(
         # =====================================================
 
         fields = qr_code.strip().split(",")
-
-        print("========================================")
-        print("DELETE QR INPUT:")
-        print(qr_code)
-        print("Total fields:", len(fields))
-        print("Fields:", fields)
-        print("========================================")
-
-        # G / T QR
-        # Header = 5 fields
-        # Detail = 4 fields each
-        #
-        # F QR
-        # Header = 5 fields
-        # Detail = 7 fields each
 
         if len(fields) < 6:
             return {
@@ -1016,9 +813,6 @@ def delete_stocktak(
                 "param": "確認用紙"
             }
 
-        print("CONF TYPE:", conf_type)
-        print("DETAIL COUNT:", detail_count)
-
         # =====================================================
         # CHECK QR EXISTS IN HTSTOCKQR
         # =====================================================
@@ -1035,21 +829,6 @@ def delete_stocktak(
               AND TACIAIFLG = ?
         """
 
-        print("========================================")
-        print("CHECK HTSTOCKQR")
-        print(sql_qr)
-        print(
-            "HTNM:",
-            worker_code,
-            "WAREHOUSCD:",
-            warehouse_code,
-            "QR:",
-            qr_code,
-            "TACIAIFLG:",
-            taciaiflg
-        )
-        print("========================================")
-
         cursor.execute(
             sql_qr,
             [
@@ -1063,7 +842,6 @@ def delete_stocktak(
         qr_row = cursor.fetchone()
 
         if not qr_row:
-            print("QR NOT FOUND IN HTSTOCKQR")
 
             return {
                 "success": False,
@@ -1071,8 +849,6 @@ def delete_stocktak(
             }
 
         qr_serno = int(qr_row[0])
-
-        print("QR SERNO:", qr_serno)
 
         # =====================================================
         # QR HEADER
@@ -1083,14 +859,6 @@ def delete_stocktak(
         conf_serno = int(fields[3])
         destinat_cd = int(fields[4])
 
-        print("----------------------------------------")
-        print("DELETE HEADER")
-        print("partner_cd :", partner_cd)
-        print("lot        :", lot)
-        print("conf_serno :", conf_serno)
-        print("destinat_cd:", destinat_cd)
-        print("----------------------------------------")
-
         # =====================================================
         # TABLE
         # =====================================================
@@ -1100,8 +868,6 @@ def delete_stocktak(
         else:
             table_name = "TYKSFLIB.HTSTOCKTAT"
 
-        print("DELETE TABLE:", table_name)
-
         # =====================================================
         # CHECK HTTAKE FOR EVERY DETAIL
         # =====================================================
@@ -1109,10 +875,6 @@ def delete_stocktak(
         for index in range(1, detail_count + 1):
 
             conf_rowno = index
-
-            print("----------------------------------------")
-            print("CHECK DETAIL:", conf_rowno)
-            print("----------------------------------------")
 
             count = check_httake(
                 conf_serno,
@@ -1122,14 +884,7 @@ def delete_stocktak(
                 partner_cd
             )
 
-            print("HTTAKE Count:", count)
-
             if count > 0:
-
-                print(
-                    "HTTAKE EXISTS - DELETE NOT ALLOWED:",
-                    conf_rowno
-                )
 
                 conn.rollback()
 
@@ -1159,20 +914,12 @@ def delete_stocktak(
             destinat_cd
         ]
 
-        print("========================================")
-        print("DELETE STOCK QUERY:")
-        print(delete_sql)
-        print("PARAMETERS:", delete_params)
-        print("========================================")
-
         cursor.execute(
             delete_sql,
             delete_params
         )
 
         stock_deleted = cursor.rowcount
-
-        print("STOCK ROWS DELETED:", stock_deleted)
 
         # =====================================================
         # DELETE QR
@@ -1187,11 +934,6 @@ def delete_stocktak(
             qr_code,
         ]
 
-        print("========================================")
-        print("DELETE QR QUERY:")
-        print(delete_qr_sql)
-        print("========================================")
-
         cursor.execute(
             delete_qr_sql,
             delete_qr_params
@@ -1199,27 +941,17 @@ def delete_stocktak(
 
         qr_deleted = cursor.rowcount
 
-        print("QR ROWS DELETED:", qr_deleted)
-
         # =====================================================
         # COMMIT
         # =====================================================
 
         conn.commit()
 
-        print("========================================")
-        print("DELETE SUCCESS")
-        print("STOCK ROWS:", stock_deleted)
-        print("QR ROWS:", qr_deleted)
-        print("========================================")
-
         return {
             "success": True
         }
 
     except Exception as e:
-
-        print("Delete Error:", e)
 
         if conn:
             try:
@@ -1298,7 +1030,7 @@ def detail_list(worker_code: str, warehouse_code: str, inventory_flag: str):
         return rows
 
     except Exception as e:
-        print("Error:", e)
+        
         return []
 
     finally:
@@ -1324,14 +1056,6 @@ def check_stockqr(worker_code: str, warehouse_code: str, qr_code: str, taciaiflg
               AND TACIAIFLG = ?
         """
 
-        print(sql)
-        print(
-            worker_code,
-            warehouse_code,
-            qr_code,
-            taciaiflg
-        )
-
         cursor.execute(sql, [
             worker_code,
             int(warehouse_code),
@@ -1344,7 +1068,7 @@ def check_stockqr(worker_code: str, warehouse_code: str, qr_code: str, taciaiflg
         return int(row[0]) > 0 if row else False
 
     except Exception as e:
-        print("check_stockqr Error:", e)
+        
         return False
 
     finally:

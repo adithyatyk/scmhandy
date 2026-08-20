@@ -40,8 +40,6 @@ def transfer_data(htnm, inventory_flag, confirm=False):
 
         count = cursor.fetchone()[0]
 
-        print("COUNT =", count)
-
         if count == 0:
             return {
                 "success": False,
@@ -88,10 +86,6 @@ def transfer_data(htnm, inventory_flag, confirm=False):
         pc = str(row[1]).strip()
         scan_date = str(row[2]).strip()
         datetime = scan_date[:14]
-
-        print("SERNO    =", empno)
-        print("PC       =", pc)
-        print("DATETIME =", datetime)
 
         # ---------------------------------------
         # Detail Information
@@ -168,15 +162,11 @@ def transfer_data(htnm, inventory_flag, confirm=False):
 
         xml_data += "</root>"
 
-        print("================ XML ================")
-        print(xml_data)
-
         jconn = conn.jconn
 
         # ---------------------------------------
         # Stored Procedure
         # ---------------------------------------
-        print("inventory_flag =", inventory_flag)
         if inventory_flag == "外注品その他処理":
 
             cs = jconn.prepareCall(
@@ -201,16 +191,10 @@ def transfer_data(htnm, inventory_flag, confirm=False):
             JInt(5),
             JInt(Types.CHAR)
         )
-        print("===== STORED PROCEDURE PARAM =====")
-        print("EMP =", empno)
-        print("PC =", pc)
-        print("DATE =", datetime)
-        print("XML =", xml_data)
+
         cs.execute()
 
         out_cd = (cs.getString(5) or "").strip()
-
-        print("OUT_CD =", out_cd)
 
         # ---------------------------------------
         # Stored Procedure Error
@@ -264,8 +248,6 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                    AND PROCESSFLG = '5'
                    AND TRANSFEFLG = ''
             """, (htnm,))
-
-        print("UPDATE COUNT =", cursor.rowcount)
 
         conn.commit()
 
@@ -335,8 +317,6 @@ def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
 
         count = cursor.fetchone()[0]
 
-        print("DELETE TEMP COUNT =", count)
-
         # ---------------------------------------
         # No temporary data
         # ---------------------------------------
@@ -385,9 +365,7 @@ def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
             """, (htnm,))
 
         deleted_count = cursor.rowcount
-        print("sql")
-        print("DELETE COUNT =", deleted_count)
-
+        
         # ---------------------------------------
         # Delete failed
         # ---------------------------------------

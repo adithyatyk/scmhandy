@@ -1,4 +1,5 @@
 import traceback
+from datetime import datetime
 from .connection import get_connection
 
 
@@ -212,6 +213,93 @@ def get_next_serno(cursor):
 # VARCHAR  -> ' '
 # SLIPNO   -> 入力番号
 # ============================================================
+# ============================================================
+# ACC : Get transfer item data
+# SQL10 source data
+# ============================================================
+
+def get_acc_transfer_data(cursor, delivery_date, slip_numbers):
+
+    # --------------------------------------------------------
+    # Convert frontend date
+    # YYYY/MM/DD -> YYYYMMDD
+    # --------------------------------------------------------
+
+    date_text = str(delivery_date).strip()
+
+    date_obj = datetime.strptime(
+        date_text,
+        "%Y/%m/%d"
+    )
+
+    delivery_value = int(
+        date_obj.strftime("%Y%m%d")
+    )
+
+    # --------------------------------------------------------
+    # Number list
+    # --------------------------------------------------------
+
+    slip_values = [
+        int(str(value).replace(" ", "").strip())
+        for value in slip_numbers
+    ]
+
+    if not slip_values:
+        return []
+
+    # --------------------------------------------------------
+    # Create ?, ?, ?, ? dynamically
+    # --------------------------------------------------------
+
+    placeholders = ",".join(["?"] * len(slip_values))
+
+    sql = f"""
+        SELECT
+            A.HASOBI,
+            A.DENPNO,
+            C.SYHNCD,
+            REPLACE(
+                CONCAT(C.ZISIT1, C.ZISIT2),
+                ',',
+                ' '
+            ) AS ZISIT,
+
+            CONCAT(C.HINME1, C.HINME2) AS HINME,
+            C.SYUKSU,
+            G.GOMANA,
+            G.GOMATK
+        FROM ACCSFLIB.FHB0 AS A
+
+        INNER JOIN ACCSFLIB.FHC0 AS C
+            ON A.DENPNO = C.DENPNO
+           AND A.HASOBI = C.HASOBI
+
+        LEFT JOIN PRDLIBF.GOMAST AS G
+            ON C.SYHNCD = G.GOMANO
+
+        WHERE A.HASOBI = ?
+          AND A.DENPNO IN ({placeholders})
+          AND A.@@JKX = ''
+          AND C.@@JKX = ''
+
+        ORDER BY A.DENPNO
+    """
+
+    params = [delivery_value] + slip_values
+
+    cursor.execute(sql, params)
+
+    rows = cursor.fetchall()
+
+    print("-----------------------------------")
+    print("HT0110 : ACC TRANSFER DATA")
+    print("DELIVERY     =", delivery_value)
+    print("SLIP NUMBERS =", slip_values)
+    print("ROW COUNT    =", len(rows))
+    print("-----------------------------------")
+
+    return rows
 
 def insert_slip_no(
     htnm,
@@ -230,134 +318,275 @@ def insert_slip_no(
 
         partner_code_int = int(partner_code)
 
-        # ----------------------------------------------------
-        # DELIVERY
-        # 2026/06/08 -> 20260608
-        # ----------------------------------------------------
+        # ====================================================
+        # DELIVERY DATE
+        # Frontend : 2026/08/20
+        # DB       : 20260820
+        # ====================================================
 
-        delivery_value = 0
+        if not delivery_date:
 
-        if delivery_date:
+            return {
+                "success": False,
+                "messageCode": "E211",
+                "param": "納品日"
+            }
 
-            date_text = str(delivery_date).replace("/", "").strip()
+        date_text = str(delivery_date).strip()
 
-            if len(date_text) == 8 and date_text.isdigit():
-                delivery_value = int(date_text)
-            else:
-                return {
-                    "success": False,
-                    "messageCode": "E211",
-                    "param": "正しい日付"
-                }
+        try:
 
-        # ----------------------------------------------------
-        # Each number -> one HTSTORAGE row
-        # ----------------------------------------------------
+            date_obj = datetime.strptime(
+                date_text,
+                "%Y/%m/%d"
+            )
 
-        for slip_no in slip_numbers:
+        except ValueError:
 
-            slip_no_int = int(str(slip_no).replace(" ", "").strip())
+            return {
+                "success": False,
+                "messageCode": "E211",
+                "param": "正しい日付"
+            }
 
-            # -----------------------------------------------
-            # Duplicate check
-            # -----------------------------------------------
+        delivery_value = int(
+            date_obj.strftime("%Y%m%d")
+        )
 
-            if partner_code == "11":
+        print("-----------------------------------")
+        print("HT0110 : DELIVERY")
+        print("INPUT    =", date_text)
+        print("DELIVERY =", delivery_value)
+        print("-----------------------------------")
+
+        # ====================================================
+        # ACC
+        # PARTNER CODE = 11
+        # SQL10
+        # ====================================================
+
+        if partner_code == "11":
+
+            for slip_no in slip_numbers:
+
+                slip_no_int = int(
+                    str(slip_no).replace(" ", "").strip()
+                )
+
+                # --------------------------------------------
+                # Duplicate check
+                # --------------------------------------------
 
                 cursor.execute("""
                     SELECT COUNT(*)
                     FROM TYKSFLIB.HTSTORAGE
                     WHERE PARTNERCD = 11
                       AND SLIPNO = ?
-                """, (slip_no_int,))
+                """, (
+                    slip_no_int,
+                ))
 
-            elif partner_code == "12":
+                row = cursor.fetchone()
+
+                count = int(row[0]) if row else 0
+
+                if count > 0:
+
+                    return {
+                        "success": False,
+                        "exists": True,
+                        "slipNo": str(slip_no_int)
+                    }
+
+                # --------------------------------------------
+                # Get ACC source data
+                # --------------------------------------------
 
                 cursor.execute("""
-                    SELECT COUNT(*)
-                    FROM TYKSFLIB.HTSTORAGE
-                    WHERE PARTNERCD = 12
-                      AND SLIPNO = ?
-                """, (slip_no_int,))
+                    SELECT
+                        A.HASOBI,
+                        A.DENPNO,
+                        C.SYHNCD,
+                        REPLACE(
+                            CONCAT(C.ZISIT1, C.ZISIT2),
+                            ',',
+                            ' '
+                        ) AS ZISIT,
 
-            else:
+                        CONCAT(C.HINME1, C.HINME2) AS HINME,
+                        C.SYUKSU,
+                        G.GOMANA,
+                        G.GOMATK
+                    FROM ACCSFLIB.FHB0 AS A
 
-                cursor.execute("""
-                    SELECT COUNT(*)
-                    FROM TYKSFLIB.HTSTORAGE
-                    WHERE PARTNERCD NOT IN (11, 12)
-                      AND SLIPNO = ?
-                """, (slip_no_int,))
+                    INNER JOIN ACCSFLIB.FHC0 AS C
+                        ON A.DENPNO = C.DENPNO
+                       AND A.HASOBI = C.HASOBI
 
-            row = cursor.fetchone()
-            count = int(row[0]) if row else 0
+                    LEFT JOIN PRDLIBF.GOMAST AS G
+                        ON C.SYHNCD = G.GOMANO
 
-            if count > 0:
+                    WHERE A.HASOBI = ?
+                      AND A.DENPNO = ?
+                      AND A.@@JKX = ''
+                      AND C.@@JKX = ''
 
-                return {
-                    "success": False,
-                    "exists": True,
-                    "slipNo": str(slip_no_int)
-                }
+                    ORDER BY A.DENPNO
+                """, (
+                    delivery_value,
+                    slip_no_int
+                ))
 
-            # -----------------------------------------------
-            # Get SERNO
-            # -----------------------------------------------
+                rows = cursor.fetchall()
 
-            serno = get_next_serno(cursor)
+                print("-----------------------------------")
+                print("HT0110 : ACC SOURCE DATA")
+                print("DELIVERY =", delivery_value)
+                print("SLIPNO   =", slip_no_int)
+                print("ROWS     =", len(rows))
+                print("-----------------------------------")
 
-            # -----------------------------------------------
-            # INSERT HTSTORAGE
-            # -----------------------------------------------
+                # --------------------------------------------
+                # No source data
+                # --------------------------------------------
 
-            cursor.execute("""
-                INSERT INTO TYKSFLIB.HTSTORAGE (
-                    SERNO,
-                    HTNM,
-                    DELIVERY,
-                    ORDERFY,
-                    ORDERMM,
-                    ORDERSERNO,
-                    SLIPNO,
-                    SUPPLIERNM,
-                    SUPPLIERCD,
-                    PARTNERCD,
-                    ROWNO,
-                    ITEMCD,
-                    MATERIAL,
-                    SYMBOL,
-                    QTY
-                )
-                VALUES (
-                    ?, ?, ?, ?, ?, ?,
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?
-                )
-            """, (
-                serno,              # SERNO
-                htnm,               # HTNM
-                delivery_value,     # DELIVERY
-                0,                  # ORDERFY
-                0,                  # ORDERMM
-                0,                  # ORDERSERNO
-                slip_no_int,        # SLIPNO
-                " ",                # SUPPLIERNM
-                " ",                # SUPPLIERCD
-                partner_code_int,   # PARTNERCD
-                0,                  # ROWNO
-                0,                  # ITEMCD
-                " ",                # MATERIAL
-                " ",                # SYMBOL
-                0                   # QTY
-            ))
+                if not rows:
 
-            print("-----------------------------------")
-            print("HT0110 : INSERT HTSTORAGE")
-            print("SERNO        =", serno)
-            print("HTNM         =", htnm)
-            print("DELIVERY     =", delivery_value)
-            print("SLIPNO       =", slip_no_int)
-            print("PARTNER CODE =", partner_code)
-            print("-----------------------------------")
+                    return {
+                        "success": False,
+                        "messageCode": "E211",
+                        "param": "伝票№"
+                    }
+
+                # --------------------------------------------
+                # Insert every detail row
+                # --------------------------------------------
+
+                for source_row in rows:
+
+                    (
+                        hasobi,
+                        denpno,
+                        syhncd,
+                        zisit,
+                        hinme,
+                        syuksu,
+                        gomana,
+                        gomatk
+                    ) = source_row
+                    
+                    # ----------------------------------------
+                    # Material
+                    #
+                    # GOMANA != NULL -> ZISIT1 + ZISIT2
+                    # GOMANA = NULL  -> blank
+                    # ----------------------------------------
+
+                    material = (
+                        str(zisit or "").strip()
+                        if gomana is not None
+                        else ""
+                    )
+
+                    # ----------------------------------------
+                    # Symbol
+                    #
+                    # GOMATK != NULL -> HINME1 + HINME2
+                    # GOMATK = NULL  -> blank
+                    # ----------------------------------------
+
+                    symbol = (
+                        str(hinme or "").strip()
+                        if gomatk is not None
+                        else ""
+                    )
+
+                    # ----------------------------------------
+                    # Get next SERNO
+                    # ----------------------------------------
+
+                    serno = get_next_serno(cursor)
+
+                    # ----------------------------------------
+                    # INSERT HTSTORAGE
+                    # ----------------------------------------
+
+                    cursor.execute("""
+                        INSERT INTO TYKSFLIB.HTSTORAGE (
+                            SERNO,
+                            HTNM,
+                            DELIVERY,
+                            ORDERFY,
+                            ORDERMM,
+                            ORDERSERNO,
+                            SLIPNO,
+                            SUPPLIERNM,
+                            SUPPLIERCD,
+                            PARTNERCD,
+                            ROWNO,
+                            ITEMCD,
+                            MATERIAL,
+                            SYMBOL,
+                            QTY
+                        )
+                        VALUES (
+                            ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?
+                        )
+                    """, (
+                        serno,             # SERNO
+                        htnm,              # HTNM
+                        int(hasobi),       # DELIVERY
+                        0,                 # ORDERFY
+                        0,                 # ORDERMM
+                        0,                 # ORDERSERNO
+                        int(denpno),       # SLIPNO
+                        "ACC",             # SUPPLIERNM
+                        "0",               # SUPPLIERCD
+                        11,                # PARTNERCD
+                        0,                 # ROWNO
+                        int(syhncd),       # ITEMCD
+                        material,          # MATERIAL
+                        symbol,            # SYMBOL
+                        int(syuksu or 0)   # QTY
+                    ))
+
+                    print("-----------------------------------")
+                    print("HT0110 : INSERT HTSTORAGE")
+                    print("SERNO       =", serno)
+                    print("HTNM        =", htnm)
+                    print("DELIVERY    =", hasobi)
+                    print("SLIPNO      =", denpno)
+                    print("SUPPLIERNM  = ACC")
+                    print("PARTNERCD   = 11")
+                    print("ITEMCD      =", syhncd)
+                    print("MATERIAL    =", material)
+                    print("SYMBOL      =", symbol)
+                    print("QTY         =", syuksu)
+                    print("-----------------------------------")
+
+        # ====================================================
+        # U-Cera
+        # ====================================================
+
+        elif partner_code == "12":
+
+            # SQL11 will be added here
+            pass
+
+        # ====================================================
+        # その他
+        # ====================================================
+
+        else:
+
+            # SQL12 will be added here
+            pass
+
+        # ====================================================
+        # COMMIT
+        # ====================================================
 
         conn.commit()
 

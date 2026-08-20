@@ -15,8 +15,12 @@ from .ht_views import (
     transfer,
     detail_list
 )
-from .ht_views import (ht3100_check_transfer,ht3100_delete)
-from .ht_views import (ht3100_check_transfer,ht3100_delete,ht0110_check_untransferred)
+from .ht_views import (
+    ht3100_check_transfer,
+    ht3100_delete,
+    ht0110_check_untransferred,
+    ht0110_execute
+)
 urlpatterns = [
 
     path("form/",form_data),
@@ -48,6 +52,8 @@ urlpatterns = [
     path("ht3100/delete/", ht3100_delete),
 
     path("ht0110/check-untransferred/", ht0110_check_untransferred),
+
+    path("ht0110/execute/", ht0110_execute),
     
 ]
 
