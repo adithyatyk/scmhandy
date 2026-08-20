@@ -14,10 +14,17 @@ from .ht0100 import transfer_data as ht0100_transfer
 from .ht0410 import insert_stocktak
 from .ht0410 import detail_list as get_detail_list
 from .ht0410 import delete_stocktak
+from .ht0410 import check_delete_stocktak
 from .ht3100 import (
     transfer_data as ht3100_transfer,
     delete_ht3110_temp_data as ht3100_delete_temp_data
 )
+from .ht0110 import (
+    check_untransferred_data,
+    check_slip_no_exists,
+    insert_slip_no
+)
+
 import json
 
 @csrf_exempt
@@ -400,6 +407,40 @@ def scan_qr(request):
 
     elif mode == "削除":
 
+        result = check_delete_stocktak(
+            worker_code,
+            warehouse_code,
+            qr_code,
+            taciaiflg
+        )
+
+        return JsonResponse(result)
+
+    else:
+        return JsonResponse({
+            "success": False,
+            "code": "E229",
+            "message": f"Unknown mode: {mode}"
+        })
+@csrf_exempt
+def delete_qr(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        worker_code = data.get("code", "").strip()
+        warehouse_code = data.get("warehouseCode", "").strip()
+        qr_code = data.get("qrCode", "").strip()
+        inventory_flag = data.get("inventoryFlag", "").strip()
+
+        taciaiflg = "0" if inventory_flag == "完成品" else "1"
+
         result = delete_stocktak(
             worker_code,
             warehouse_code,
@@ -408,20 +449,17 @@ def scan_qr(request):
             inventory_flag
         )
 
-        if not result["success"]:
-            return JsonResponse(result)
+        return JsonResponse(result)
 
-        return JsonResponse({
-            "success": True
-        })
+    except Exception as e:
 
-    else:
+        print("Delete QR Error:", e)
+
         return JsonResponse({
             "success": False,
             "code": "E229",
-            "message": f"Unknown mode: {mode}"
-        })
-        
+            "message": str(e)
+        })       
 @csrf_exempt
 def transfer(request):
 
@@ -527,3 +565,156 @@ def ht3100_delete(request):
             "success": False,
             "messageCode": "E206"
         })
+@csrf_exempt
+def ht0110_check_untransferred(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        htnm = str(data.get("code", "")).strip()
+        partner_code = str(data.get("partnerCode", "")).strip()
+
+        result = check_untransferred_data(
+            htnm,
+            partner_code
+        )
+
+        return JsonResponse(result)
+
+    except Exception as e:
+
+        print("HT0110 Check Error:", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E102"
+        })
+@csrf_exempt
+def ht0110_execute(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        htnm = str(data.get("code", "")).strip()
+        partner_code = str(data.get("partnerCode", "")).strip()
+        delivery_date = str(data.get("deliveryDate", "")).strip()
+        slip_numbers = data.get("slipNumbers", [])
+
+        # -----------------------------------------------
+        # Number list check
+        # -----------------------------------------------
+
+        label = (
+            "注文番号"
+            if partner_code == "0"
+            else "伝票№"
+        )
+
+        if not slip_numbers:
+
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E211",
+                "param": label
+            })
+
+        # -----------------------------------------------
+        # Delivery date check
+        # -----------------------------------------------
+
+        if partner_code == "11":
+
+            if not delivery_date:
+
+                return JsonResponse({
+                    "success": False,
+                    "messageCode": "E211",
+                    "param": "納品日"
+                })
+
+            date_text = delivery_date.replace("/", "")
+
+            if (
+                len(date_text) != 8
+                or not date_text.isdigit()
+            ):
+
+                return JsonResponse({
+                    "success": False,
+                    "messageCode": "E211",
+                    "param": "正しい日付"
+                })
+
+        # -----------------------------------------------
+        # SQL01 / SQL02 / SQL03
+        # -----------------------------------------------
+
+        result = check_untransferred_data(
+            htnm,
+            partner_code
+        )
+
+        if not result["success"]:
+            return JsonResponse(result)
+
+        # -----------------------------------------------
+        # Check each number already registered
+        # -----------------------------------------------
+
+        for slip_no in slip_numbers:
+
+            result = check_slip_no_exists(
+                slip_no,
+                partner_code
+            )
+
+            if not result["success"]:
+                return JsonResponse(result)
+
+            if result.get("exists"):
+
+                return JsonResponse({
+                    "success": False,
+                    "messageCode": "E211",
+                    "param": label
+                })
+
+        # -----------------------------------------------
+        # INSERT HTSTORAGE
+        # -----------------------------------------------
+
+        result = insert_slip_no(
+            htnm,
+            delivery_date,
+            slip_numbers,
+            partner_code
+        )
+
+        if not result["success"]:
+            return JsonResponse(result)
+
+        return JsonResponse({
+            "success": True,
+            "messageCode": "I201"
+        })
+
+    except Exception:
+
+        traceback.print_exc()
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E102"
+        })        

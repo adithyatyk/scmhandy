@@ -433,7 +433,7 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         cursor = conn.cursor()
 
         serno = 1
-        qr_serno = 1
+        # qr_serno = 1
 
         # =====================================================
         # DELETE PREVIOUS DATA BEFORE NEW INSERT
@@ -478,25 +478,25 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
         # Delete previous QR data
         # -----------------------------------------------------
 
-        delete_qr_sql = """
-            DELETE FROM TYKSFLIB.HTSTOCKQR
-            WHERE HTNM = ?
-            AND WAREHOUSCD = ?
-            AND TACIAIFLG = ?
-        """
+        # delete_qr_sql = """
+        #     DELETE FROM TYKSFLIB.HTSTOCKQR
+        #     WHERE HTNM = ?
+        #     AND WAREHOUSCD = ?
+        #     AND TACIAIFLG = ?
+        # """
 
-        cursor.execute(
-            delete_qr_sql,
-            [
-                worker_code,
-                int(warehouse_code),
-                taciaiflg
-            ]
-        )
+        # cursor.execute(
+        #     delete_qr_sql,
+        #     [
+        #         worker_code,
+        #         int(warehouse_code),
+        #         taciaiflg
+        #     ]
+        # )
 
-        qr_deleted = cursor.rowcount
+        # qr_deleted = cursor.rowcount
 
-        print("Previous QR rows deleted:", qr_deleted)
+        # print("Previous QR rows deleted:", qr_deleted)
 
         # =====================================================
         # PROCESS EACH DETAIL
@@ -693,40 +693,58 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
             # Next detail gets next SERNO
             serno += 1
 
-        if inventory_flag == "立会い":
-            cursor.execute("""
-                INSERT INTO TYKSFLIB.HTSTOCKQR
-                (
-                    HTNM,
-                    WAREHOUSCD,
-                    SERNO,
-                    TACIAIFLG,
-                    QR
-                )
-                VALUES (?, ?, ?, '1', ?)
-            """, [
-                worker_code,
-                int(warehouse_code),
-                qr_serno,
-                qr_code
-            ])
+        # =====================================================
+        # GET NEXT SERNO FOR HTSTOCKQR
+        # =====================================================
+
+        cursor.execute("""
+            SELECT MAX(SERNO)
+            FROM TYKSFLIB.HTSTOCKQR
+            WHERE HTNM = ?
+            AND WAREHOUSCD = ?
+            AND TACIAIFLG = ?
+        """, [
+            worker_code,
+            int(warehouse_code),
+            taciaiflg
+        ])
+
+        row = cursor.fetchone()
+
+        if row and row[0] is not None:
+            qr_serno = int(row[0]) + 1
         else:
-            cursor.execute("""
-                INSERT INTO TYKSFLIB.HTSTOCKQR
-                (
-                    HTNM,
-                    WAREHOUSCD,
-                    SERNO,
-                    TACIAIFLG,
-                    QR
-                )
-                VALUES (?, ?, ?, '0', ?)
-            """, [
-                worker_code,
-                int(warehouse_code),
-                qr_serno,
-                qr_code
-            ])
+            qr_serno = 1
+
+        print("========================================")
+        print("NEXT HTSTOCKQR SERNO:", qr_serno)
+        print("HTNM:", worker_code)
+        print("WAREHOUSCD:", warehouse_code)
+        print("TACIAIFLG:", taciaiflg)
+        print("========================================")
+
+
+        # =====================================================
+        # INSERT HTSTOCKQR
+        # =====================================================
+
+        cursor.execute("""
+            INSERT INTO TYKSFLIB.HTSTOCKQR
+            (
+                HTNM,
+                WAREHOUSCD,
+                SERNO,
+                TACIAIFLG,
+                QR
+            )
+            VALUES (?, ?, ?, ?, ?)
+        """, [
+            worker_code,
+            int(warehouse_code),
+            qr_serno,
+            taciaiflg,
+            qr_code
+        ])
         
         conn.commit()
 
@@ -754,6 +772,174 @@ def insert_stocktak(worker_code: str, warehouse_code: str, qr_code: str, taciaif
 
         if conn:
             conn.close()
+def check_delete_stocktak(
+    worker_code: str,
+    warehouse_code: str,
+    qr_code: str,
+    taciaiflg: str
+):
+
+    conn = None
+    cursor = None
+
+    try:
+        fields = qr_code.strip().split(",")
+
+        if len(fields) < 6:
+            return {
+                "success": False,
+                "code": "E220",
+                "param": "確認用紙"
+            }
+
+        conf_type = fields[0].strip()
+
+        # -----------------------------
+        # Check detail count
+        # -----------------------------
+
+        if conf_type in ("G", "T"):
+
+            detail_fields = fields[5:]
+
+            if len(detail_fields) % 4 != 0:
+                return {
+                    "success": False,
+                    "code": "E220",
+                    "param": "確認用紙"
+                }
+
+            detail_count = len(detail_fields) // 4
+
+        elif conf_type == "F":
+
+            detail_fields = fields[5:]
+
+            if len(detail_fields) % 7 != 0:
+                return {
+                    "success": False,
+                    "code": "E220",
+                    "param": "確認用紙"
+                }
+
+            detail_count = len(detail_fields) // 7
+
+        else:
+
+            return {
+                "success": False,
+                "code": "E220",
+                "param": "確認用紙"
+            }
+
+        # -----------------------------
+        # QR header
+        # -----------------------------
+
+        partner_cd = int(fields[1])
+        lot = int(fields[2])
+        conf_serno = int(fields[3])
+        destinat_cd = int(fields[4])
+
+        # -----------------------------
+        # Check QR exists
+        # -----------------------------
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        sql_qr = """
+            SELECT SERNO
+            FROM TYKSFLIB.HTSTOCKQR
+            WHERE HTNM = ?
+              AND WAREHOUSCD = ?
+              AND QR = ?
+              AND TACIAIFLG = ?
+        """
+
+        cursor.execute(
+            sql_qr,
+            [
+                worker_code,
+                int(warehouse_code),
+                qr_code,
+                taciaiflg
+            ]
+        )
+
+        qr_row = cursor.fetchone()
+
+        if not qr_row:
+            return {
+                "success": False,
+                "code": "E215"
+            }
+
+        # -----------------------------
+        # Check HTTAKE
+        # -----------------------------
+
+        for index in range(1, detail_count + 1):
+
+            conf_rowno = index
+
+            count = check_httake(
+                conf_serno,
+                lot,
+                destinat_cd,
+                conf_rowno,
+                partner_cd
+            )
+
+            print(
+                "DELETE CHECK HTTAKE:",
+                "CONFROWNO =", conf_rowno,
+                "COUNT =", count
+            )
+
+            if count > 0:
+
+                return {
+                    "success": False,
+                    "code": "E226"
+                }
+
+        # -----------------------------
+        # All checks passed
+        # -----------------------------
+
+        print("DELETE CHECK PASSED")
+        print("HTTAKE COUNT = 0")
+        print("Returning Q204")
+
+        return {
+            "success": True,
+            "code": "Q204"
+        }
+
+    except Exception as e:
+
+        print("check_delete_stocktak Error:", e)
+
+        return {
+            "success": False,
+            "code": "E229",
+            "message": str(e)
+        }
+
+    finally:
+
+        if cursor:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass            
 def delete_stocktak(
     worker_code: str,
     warehouse_code: str,
@@ -994,23 +1180,16 @@ def delete_stocktak(
 
         delete_qr_sql = """
             DELETE FROM TYKSFLIB.HTSTOCKQR
-            WHERE HTNM = ?
-              AND WAREHOUSCD = ?
-              AND QR = ?
-              AND TACIAIFLG = ?
+            WHERE QR = ?
         """
 
         delete_qr_params = [
-            worker_code,
-            int(warehouse_code),
             qr_code,
-            taciaiflg
         ]
 
         print("========================================")
         print("DELETE QR QUERY:")
         print(delete_qr_sql)
-        print("PARAMETERS:", delete_qr_params)
         print("========================================")
 
         cursor.execute(

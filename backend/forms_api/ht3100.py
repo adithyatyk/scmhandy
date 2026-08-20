@@ -24,7 +24,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                 SELECT COUNT(*)
                 FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG <> 5
+                  AND PROCESSFLG <> '5'
                   AND TRANSFEFLG = ''
             """, (htnm,))
 
@@ -34,7 +34,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                 SELECT COUNT(*)
                 FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG = 5
+                  AND PROCESSFLG = '5'
                   AND TRANSFEFLG = ''
             """, (htnm,))
 
@@ -113,7 +113,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                     SCANDATE
                 FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG <> 5
+                  AND PROCESSFLG <> '5'
                   AND TRANSFEFLG = ''
                 ORDER BY ROWNO
             """, (htnm,))
@@ -134,7 +134,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                     SCANDATE
                 FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG = 5
+                  AND PROCESSFLG = '5'
                   AND TRANSFEFLG = ''
                 ORDER BY ROWNO
             """, (htnm,))
@@ -251,7 +251,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                 UPDATE TYKSFLIB.HTREJECT
                    SET TRANSFEFLG = '1'
                  WHERE HTNM = ?
-                   AND PROCESSFLG <> 5
+                   AND PROCESSFLG <> '5'
                    AND TRANSFEFLG = ''
             """, (htnm,))
 
@@ -261,7 +261,7 @@ def transfer_data(htnm, inventory_flag, confirm=False):
                 UPDATE TYKSFLIB.HTREJECT
                    SET TRANSFEFLG = '1'
                  WHERE HTNM = ?
-                   AND PROCESSFLG = 5
+                   AND PROCESSFLG = '5'
                    AND TRANSFEFLG = ''
             """, (htnm,))
 
@@ -321,7 +321,7 @@ def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
                 SELECT COUNT(*)
                 FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG <> 5
+                  AND PROCESSFLG <> '5'
             """, (htnm,))
 
         else:
@@ -330,7 +330,7 @@ def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
                 SELECT COUNT(*)
                 FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG = 5
+                  AND PROCESSFLG = '5'
             """, (htnm,))
 
         count = cursor.fetchone()[0]
@@ -373,7 +373,7 @@ def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
             cursor.execute("""
                 DELETE FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG <> 5
+                  AND PROCESSFLG <> '5'
             """, (htnm,))
 
         else:
@@ -381,7 +381,7 @@ def delete_ht3110_temp_data(htnm, inventory_flag, confirm=False):
             cursor.execute("""
                 DELETE FROM TYKSFLIB.HTREJECT
                 WHERE HTNM = ?
-                  AND PROCESSFLG = 5
+                  AND PROCESSFLG = '5'
             """, (htnm,))
 
         deleted_count = cursor.rowcount
