@@ -13,7 +13,9 @@ from .ht_views import (
     scan_qr,
     delete_qr,
     transfer,
-    detail_list
+    detail_list,
+    ht0100_delete_temp,
+    ht0100_check_delete
 )
 from .ht_views import (
     ht3100_check_transfer,
@@ -44,6 +46,10 @@ urlpatterns = [
     path("ht0410/delete/",delete_qr),
  
     path("ht0100/transfer/",transfer),
+
+    path("ht0100/check-delete/", ht0100_check_delete),
+
+    path("ht0100/delete-temp/", ht0100_delete_temp),
 
     path("ht0410/list/",detail_list),
 

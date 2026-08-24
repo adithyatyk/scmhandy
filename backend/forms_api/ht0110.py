@@ -568,21 +568,295 @@ def insert_slip_no(
 
         # ====================================================
         # U-Cera
+        # PARTNER CODE = 12
+        # SQL11
         # ====================================================
 
         elif partner_code == "12":
 
-            # SQL11 will be added here
-            pass
+            for slip_no in slip_numbers:
 
-        # ====================================================
+                slip_no_int = int(
+                    str(slip_no).replace(" ", "").strip()
+                )
+
+                # --------------------------------------------
+                # Duplicate check
+                # --------------------------------------------
+
+                cursor.execute("""
+                    SELECT COUNT(*)
+                    FROM TYKSFLIB.HTSTORAGE
+                    WHERE PARTNERCD = 12
+                    AND SLIPNO = ?
+                """, (
+                    slip_no_int,
+                ))
+
+                row = cursor.fetchone()
+
+                count = int(row[0]) if row else 0
+
+                if count > 0:
+
+                    return {
+                        "success": False,
+                        "exists": True,
+                        "slipNo": str(slip_no_int)
+                    }
+
+            # --------------------------------------------
+            # SQL11 : Get U-Cera source data
+            # --------------------------------------------
+
+            cursor.execute("""
+                SELECT
+                    H.HMHMNO,
+                    H.HMHMGY,
+                    H.HMTYCD,
+                    H.HMNHSU,
+                    Z.ZSZSRY,
+                    H.HMSHNM,
+                    G.GOMANA,
+                    G.GOMATK
+                FROM UCFLIB.HSMSD AS H
+
+                LEFT JOIN UCFLIB.ZAISM AS Z
+                    ON H.HMZSCD = Z.ZSZSCD
+
+                LEFT JOIN PRDLIBF.GOMAST AS G
+                    ON H.HMTYCD = G.GOMANO
+
+                WHERE H.HMHMNO = ?
+
+                ORDER BY H.HMHMNO
+            """, (
+                slip_no_int,
+            ))
+
+            rows = cursor.fetchall()
+
+            print("-----------------------------------")
+            print("HT0110 : U-CERA SOURCE DATA")
+            print("HMHMNO   =", slip_no_int)
+            print("ROWS     =", len(rows))
+            print("-----------------------------------")
+
+            # --------------------------------------------
+            # No source data
+            # --------------------------------------------
+
+            if not rows:
+
+                return {
+                    "success": False,
+                    "messageCode": "E211",
+                    "param": "伝票№"
+                }
+
+            # --------------------------------------------
+            # Insert every detail row
+            # --------------------------------------------
+
+            for source_row in rows:
+
+                (
+                    hmhmno,
+                    hmhmgy,
+                    hmtycd,
+                    hmnhsu,
+                    zszsry,
+                    hmshnm,
+                    gomana,
+                    gomatk
+                ) = source_row
+
+                # ====================================================
         # その他
+        # PARTNER CODE = 0
+        # SQL12
         # ====================================================
 
         else:
 
-            # SQL12 will be added here
-            pass
+            for slip_no in slip_numbers:
+
+                # ------------------------------------------------
+                # Screen number
+                #
+                # Example:
+                # 202601002
+                #
+                # FY + MM + SERNO
+                # ------------------------------------------------
+
+                slip_no_text = (
+                    str(slip_no)
+                    .replace(" ", "")
+                    .strip()
+                )
+
+                try:
+                    slip_no_int = int(slip_no_text)
+                except ValueError:
+
+                    return {
+                        "success": False,
+                        "messageCode": "E211",
+                        "param": "注文番号"
+                    }
+
+                # ------------------------------------------------
+                # SQL12 : Get OTHER source data
+                # ------------------------------------------------
+
+                cursor.execute("""
+                    SELECT
+                        O.DELIVERY,
+                        O.FY,
+                        O.MM,
+                        O.SERNO,
+                        O.SUPPLIER1,
+                        O.SUPPLIERCD,
+                        D.PARTNERCD,
+                        D.DTLNO,
+                        D.ITEMCD,
+                        D.MATERIAL,
+                        D.SYMBOL,
+                        D.QTY - D.HTTAKEQTY AS QTY
+                    FROM TYKSFLIB.ORDER AS O
+
+                    INNER JOIN TYKSFLIB.ORDERDTL AS D
+                        ON O.FY = D.FY
+                       AND O.MM = D.MM
+                       AND O.SERNO = D.SERNO
+
+                    WHERE
+                        (
+                            DIGITS(O.FY)
+                            CONCAT DIGITS(O.MM)
+                            CONCAT DIGITS(O.SERNO)
+                        ) = ?
+
+                        AND D.ITEMCD <> 0
+                        AND D.NOINSPFLG <> '1'
+                        AND D.HTTAKEFLG = ' '
+
+                    ORDER BY D.DTLNO
+                """, (
+                    slip_no_text,
+                ))
+
+                rows = cursor.fetchall()
+
+                print("-----------------------------------")
+                print("HT0110 : OTHER SOURCE DATA")
+                print("ORDER NO =", slip_no_text)
+                print("ROWS     =", len(rows))
+                print("-----------------------------------")
+
+                # ------------------------------------------------
+                # No source data
+                # ------------------------------------------------
+
+                if not rows:
+
+                    return {
+                        "success": False,
+                        "messageCode": "E211",
+                        "param": "注文番号"
+                    }
+
+                # ------------------------------------------------
+                # Insert every detail row
+                # ------------------------------------------------
+
+                for source_row in rows:
+
+                    (
+                        delivery,
+                        order_fy,
+                        order_mm,
+                        order_serno,
+                        supplier_nm,
+                        supplier_cd,
+                        detail_partner_cd,
+                        dtl_no,
+                        item_cd,
+                        material,
+                        symbol,
+                        qty
+                    ) = source_row
+
+                    # --------------------------------------------
+                    # Get next SERNO
+                    # --------------------------------------------
+
+                    serno = get_next_serno(cursor)
+
+                    # --------------------------------------------
+                    # INSERT HTSTORAGE
+                    # --------------------------------------------
+
+                    cursor.execute("""
+                        INSERT INTO TYKSFLIB.HTSTORAGE (
+                            SERNO,
+                            HTNM,
+                            DELIVERY,
+                            ORDERFY,
+                            ORDERMM,
+                            ORDERSERNO,
+                            SLIPNO,
+                            SUPPLIERNM,
+                            SUPPLIERCD,
+                            PARTNERCD,
+                            ROWNO,
+                            ITEMCD,
+                            MATERIAL,
+                            SYMBOL,
+                            QTY
+                        )
+                        VALUES (
+                            ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?, ?
+                        )
+                    """, (
+                        serno,                    # SERNO
+                        htnm,                     # HTNM
+                        int(delivery or 0),      # DELIVERY
+                        int(order_fy or 0),      # ORDERFY
+                        int(order_mm or 0),      # ORDERMM
+                        int(order_serno or 0),   # ORDERSERNO
+                        0,                        # SLIPNO
+                        str(supplier_nm or "").strip(),
+                        str(supplier_cd or "").strip(),
+                        0,                        # PARTNERCD
+                        int(dtl_no or 0),         # ROWNO
+                        int(item_cd or 0),        # ITEMCD
+                        str(material or "").strip(),
+                        str(symbol or "").strip(),
+                        int(qty or 0)             # QTY - HTTAKEQTY
+                    ))
+
+                    print("-----------------------------------")
+                    print("HT0110 : INSERT HTSTORAGE")
+                    print("SERNO       =", serno)
+                    print("HTNM        =", htnm)
+                    print("DELIVERY    =", delivery)
+                    print("ORDERFY     =", order_fy)
+                    print("ORDERMM     =", order_mm)
+                    print("ORDERSERNO  =", order_serno)
+                    print("SLIPNO      = 0")
+                    print("SUPPLIERNM  =", supplier_nm)
+                    print("SUPPLIERCD  =", supplier_cd)
+                    print("PARTNERCD   = 0")
+                    print("ROWNO       =", dtl_no)
+                    print("ITEMCD      =", item_cd)
+                    print("MATERIAL    =", material)
+                    print("SYMBOL      =", symbol)
+                    print("QTY         =", qty)
+                    print("-----------------------------------")
 
         # ====================================================
         # COMMIT

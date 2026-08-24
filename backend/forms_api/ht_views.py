@@ -10,7 +10,11 @@ from .ht0410 import get_warehouse_list
 from .ht0410 import get_read_count
 from .ht0410 import get_serial_no
 from .ht0410 import check_duplicate_qr
-from .ht0100 import transfer_data as ht0100_transfer
+from .ht0100 import (
+    transfer_data as ht0100_transfer,
+    check_delete_data as ht0100_check_delete_data,
+    delete_temp_data as ht0100_delete_temp_data
+)
 from .ht0410 import insert_stocktak
 from .ht0410 import detail_list as get_detail_list
 from .ht0410 import delete_stocktak
@@ -477,7 +481,62 @@ def transfer(request):
     )
 
     return JsonResponse(result)
+@csrf_exempt
+def ht0100_check_delete(request):
 
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        htnm = str(data.get("code", "")).strip()
+
+        result = ht0100_check_delete_data(htnm)
+
+        return JsonResponse(result)
+
+    except Exception:
+
+        traceback.print_exc()
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E229"
+        })
+@csrf_exempt
+def ht0100_delete_temp(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        htnm = str(data.get("code", "")).strip()
+        confirm = data.get("confirm", False)
+
+        result = ht0100_delete_temp_data(
+            htnm,
+            confirm
+        )
+
+        return JsonResponse(result)
+
+    except Exception:
+
+        traceback.print_exc()
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E229"
+        })
 @csrf_exempt
 def detail_list(request):
 

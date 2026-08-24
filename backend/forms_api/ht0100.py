@@ -1,5 +1,6 @@
 import jpype
 import traceback
+from datetime import datetime
 from .connection import get_connection
 
 
@@ -37,7 +38,7 @@ def transfer_data(htnm, confirm=False):
         if not confirm:
             return {
                 "success": False,
-                "messageCode": "Q204"
+                "messageCode": "Q201"
             }
 
         # ---------------------------------------
@@ -46,8 +47,7 @@ def transfer_data(htnm, confirm=False):
         cursor.execute("""
             SELECT
                 SERNO,
-                HTNM,
-                SCANDATE
+                HTNM
             FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
             FETCH FIRST 1 ROW ONLY
@@ -64,12 +64,14 @@ def transfer_data(htnm, confirm=False):
         empno = int(row[0])
         pc = str(row[1]).strip()
 
-        scan_date = str(row[2]).strip()
-        datetime = scan_date[:14]
+        # Current scan datetime
+        now = datetime.now()
 
-        print("SERNO    =", empno)
-        print("PC       =", pc)
-        print("DATETIME =", datetime)
+        # Stored procedure IN_DATETIME : YYYYMMDDHHMMSS
+        datetime_value = now.strftime("%Y%m%d%H%M%S")
+
+        # XML scanDate : YYYY/MM/DD HH:MM:SS
+        scan_date = now.strftime("%Y/%m/%d %H:%M:%S")
 
         # ---------------------------------------
         # Build XML from HTSTORAGE
@@ -88,11 +90,7 @@ def transfer_data(htnm, confirm=False):
                 QTY,
                 SLIPNO,
                 DELIVERY,
-                CONFIRMNO,
-                LOT,
-                SUPPLIERCD,
-                CONFIRMROW,
-                SCANDATE
+                SUPPLIERCD
             FROM TYKSFLIB.HTSTORAGE
             WHERE HTNM = ?
             ORDER BY ROWNO
@@ -105,25 +103,25 @@ def transfer_data(htnm, confirm=False):
         for r in rows:
 
             xml_data += f"""
-<data>
-    <orderFy>{r[0]}</orderFy>
-    <orderMm>{r[1]}</orderMm>
-    <orderSerNo>{r[2]}</orderSerNo>
-    <rowNo>{r[3]}</rowNo>
-    <partnerCd>{r[4]}</partnerCd>
-    <itemCd>{r[5]}</itemCd>
-    <material>{str(r[6]).strip()}</material>
-    <symbol>{str(r[7]).strip()}</symbol>
-    <qty>{r[8]}</qty>
-    <slipNo>{r[9]}</slipNo>
-    <shippingDate>{r[10]}</shippingDate>
-    <confirmSerNo>{r[11]}</confirmSerNo>
-    <lot>{r[12]}</lot>
-    <destinationCd>{str(r[13]).strip()}</destinationCd>
-    <confirmRowNo>{r[14]}</confirmRowNo>
-    <scanDate>{str(r[15]).strip()}</scanDate>
-</data>
-"""
+        <data>
+            <orderFy>{r[0]}</orderFy>
+            <orderMm>{r[1]}</orderMm>
+            <orderSerNo>{r[2]}</orderSerNo>
+            <rowNo>{r[3]}</rowNo>
+            <partnerCd>{r[4]}</partnerCd>
+            <itemCd>{r[5]}</itemCd>
+            <material>{str(r[6]).strip()}</material>
+            <symbol>{str(r[7]).strip()}</symbol>
+            <qty>{r[8]}</qty>
+            <slipNo>{r[9]}</slipNo>
+            <shippingDate>{r[10]}</shippingDate>
+            <confirmSerNo>0</confirmSerNo>
+            <lot>0</lot>
+            <destinationCd>0</destinationCd>
+            <confirmRowNo>0</confirmRowNo>
+            <scanDate>{scan_date}</scanDate>
+        </data>
+        """
 
         xml_data += "</root>"
 
@@ -140,12 +138,15 @@ def transfer_data(htnm, confirm=False):
 
         cs.setInt(1, empno)
         cs.setString(2, pc)
-        cs.setString(3, datetime)
+        cs.setString(3, datetime_value)
         cs.setString(4, xml_data)
 
         Types = jpype.JClass("java.sql.Types")
 
-        cs.registerOutParameter(5, Types.CHAR)
+        cs.registerOutParameter(
+            jpype.JInt(5),
+            jpype.JInt(Types.CHAR)
+        )
 
         cs.execute()
 
@@ -199,4 +200,151 @@ def transfer_data(htnm, confirm=False):
             cursor.close()
 
         if conn:
-            conn.close()        
+            conn.close() 
+def check_delete_data(htnm):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # ---------------------------------------
+        # SQL10 : Check Data
+        # ---------------------------------------
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM TYKSFLIB.HTSTORAGE
+            WHERE HTNM = ?
+        """, (htnm,))
+
+        count = cursor.fetchone()[0]
+
+        print("===================================")
+        print("HT0100 DELETE CHECK")
+        print("SQL10 : SELECT COUNT(*)")
+        print("HTNM =", htnm)
+        print("COUNT =", count)
+        print("===================================")
+
+        # No data
+        if count == 0:
+            return {
+                "success": False,
+                "messageCode": "E215"
+            }
+
+        # Data exists -> ask Q204
+        return {
+            "success": True,
+            "messageCode": "Q204"
+        }
+
+    except Exception:
+
+        traceback.print_exc()
+
+        return {
+            "success": False,
+            "messageCode": "E229"
+        }
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()
+def delete_temp_data(htnm, confirm=False):
+
+    conn = None
+    cursor = None
+
+    try:
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # ---------------------------------------
+        # SQL10 : Check Data
+        # ---------------------------------------
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM TYKSFLIB.HTSTORAGE
+            WHERE HTNM = ?
+        """, (htnm,))
+
+        count = cursor.fetchone()[0]
+
+        print("===================================")
+        print("HT0100 DELETE")
+        print("SQL10 : SELECT COUNT(*)")
+        print("HTNM =", htnm)
+        print("COUNT =", count)
+        print("===================================")
+
+        if count == 0:
+            return {
+                "success": False,
+                "messageCode": "E215"
+            }
+
+        # ---------------------------------------
+        # Q204 confirmation
+        # ---------------------------------------
+        if not confirm:
+            return {
+                "success": True,
+                "messageCode": "Q204"
+            }
+
+        # ---------------------------------------
+        # SQL11 : DELETE HTSTORAGE
+        # ---------------------------------------
+        print("===================================")
+        print("HT0100 DELETE SQL11")
+        print("""
+DELETE FROM TYKSFLIB.HTSTORAGE
+WHERE HTNM = ?
+        """)
+        print("HTNM =", htnm)
+
+        cursor.execute("""
+            DELETE
+            FROM TYKSFLIB.HTSTORAGE
+            WHERE HTNM = ?
+        """, (htnm,))
+
+        delete_count = cursor.rowcount
+
+        print("DELETE COUNT =", delete_count)
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "messageCode": "I202"
+        }
+
+    except Exception:
+
+        if conn:
+            conn.rollback()
+
+        traceback.print_exc()
+
+        return {
+            "success": False,
+            "messageCode": "E229"
+        }
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if conn:
+            conn.close()
