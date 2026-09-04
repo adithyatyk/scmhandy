@@ -24,11 +24,16 @@ from .ht3100 import (
     delete_ht3110_temp_data as ht3100_delete_temp_data
 )
 from .ht0110 import (
-    check_untransferred_data,
+    check_untransferred_exists,
     check_slip_no_exists,
     insert_slip_no
 )
-
+from .ht0120 import (
+    get_storage_count,
+    check_qr_exists,
+    get_first_storage_item,
+    register_qr
+)
 import json
 
 @csrf_exempt
@@ -639,7 +644,7 @@ def ht0110_check_untransferred(request):
         htnm = str(data.get("code", "")).strip()
         partner_code = str(data.get("partnerCode", "")).strip()
 
-        result = check_untransferred_data(
+        result = check_untransferred_exists(
             htnm,
             partner_code
         )
@@ -666,7 +671,7 @@ def ht0110_execute(request):
 
         data = json.loads(request.body or "{}")
 
-        htnm = str(data.get("code", "")).strip()
+        htnm = data.get("code", "")
         partner_code = str(data.get("partnerCode", "")).strip()
         delivery_date = str(data.get("deliveryDate", "")).strip()
         slip_numbers = data.get("slipNumbers", [])
@@ -720,12 +725,20 @@ def ht0110_execute(request):
         # SQL01 / SQL02 / SQL03
         # -----------------------------------------------
 
-        result = check_untransferred_data(
+        result = check_untransferred_exists(
             htnm,
             partner_code
         )
 
         if not result["success"]:
+
+            if result.get("messageCode") == "E221":
+                return JsonResponse({
+                    "success": False,
+                    "messageCode": "E221",
+                    "param": "入庫"
+                })
+
             return JsonResponse(result)
 
         # -----------------------------------------------
@@ -736,7 +749,9 @@ def ht0110_execute(request):
 
             result = check_slip_no_exists(
                 slip_no,
-                partner_code
+                partner_code,
+                htnm,
+                delivery_date
             )
 
             if not result["success"]:
@@ -777,3 +792,115 @@ def ht0110_execute(request):
             "success": False,
             "messageCode": "E102"
         })        
+@csrf_exempt
+def ht0120_count(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        htnm = str(
+            data.get("code", "")
+        ).strip()
+
+        count = get_storage_count(htnm)
+
+        return JsonResponse({
+            "success": True,
+            "count": count
+        })
+
+    except Exception as e:
+
+        print("HT0120 Count Error:", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E102"
+        })
+@csrf_exempt
+def ht0120_scan(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False
+        }, status=405)
+
+    try:
+
+        data = json.loads(request.body or "{}")
+
+        htnm = str(
+            data.get("code", "")
+        ).strip()
+
+        qr_code = str(
+            data.get("qrCode", "")
+        ).strip()
+
+        # =====================================================
+        # QR BLANK CHECK
+        # =====================================================
+
+        if not qr_code:
+
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E211",
+                "param": "QR"
+            })
+
+        # =====================================================
+        # FIRST CHARACTER CHECK
+        # G OR F ONLY
+        # =====================================================
+
+        if qr_code[0] not in ["G", "F"]:
+
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E220",
+                "param": "受入"
+            })
+
+        # =====================================================
+        # SQL02
+        # CHECK QR ALREADY REGISTERED
+        # =====================================================
+
+        count = check_qr_exists(qr_code)
+
+        print("HT0120 SQL02 QR =", qr_code)
+        print("HT0120 SQL02 COUNT =", count)
+
+        if count > 0:
+
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E214"
+            })
+
+        # =====================================================
+        # REGISTER QR
+        # =====================================================
+
+        result = register_qr(
+            qr_code,
+            htnm
+        )
+
+        return JsonResponse(result)
+
+    except Exception as e:
+
+        print("HT0120 Scan Error:", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E102"
+        })

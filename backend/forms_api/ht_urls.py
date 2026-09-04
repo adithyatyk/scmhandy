@@ -21,7 +21,9 @@ from .ht_views import (
     ht3100_check_transfer,
     ht3100_delete,
     ht0110_check_untransferred,
-    ht0110_execute
+    ht0110_execute,
+    ht0120_count,
+    ht0120_scan
 )
 urlpatterns = [
 
@@ -60,6 +62,10 @@ urlpatterns = [
     path("ht0110/check-untransferred/", ht0110_check_untransferred),
 
     path("ht0110/execute/", ht0110_execute),
+
+    path("ht0120/count/", ht0120_count),
+    
+    path("ht0120/scan/", ht0120_scan),
     
 ]
 
