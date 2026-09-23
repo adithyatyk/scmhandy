@@ -1,7 +1,9 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .connection import get_connection
+import traceback
 from .ht0010 import fetch_staff_rows
+from datetime import datetime
 from .ht0400 import (
     delete_temp_data,
     get_temp_count
@@ -33,6 +35,10 @@ from .ht0120 import (
     check_qr_exists,
     get_first_storage_item,
     register_qr
+)
+from .ht0130 import (
+    get_ht0130_list,
+    delete_ht0130
 )
 import json
 
@@ -708,12 +714,14 @@ def ht0110_execute(request):
                     "param": "納品日"
                 })
 
-            date_text = delivery_date.replace("/", "")
+            try:
 
-            if (
-                len(date_text) != 8
-                or not date_text.isdigit()
-            ):
+                datetime.strptime(
+                    delivery_date,
+                    "%Y/%m/%d"
+                )
+
+            except ValueError:
 
                 return JsonResponse({
                     "success": False,
@@ -761,7 +769,7 @@ def ht0110_execute(request):
 
                 return JsonResponse({
                     "success": False,
-                    "messageCode": "E211",
+                    "messageCode": "E223",
                     "param": label
                 })
 
@@ -790,7 +798,7 @@ def ht0110_execute(request):
 
         return JsonResponse({
             "success": False,
-            "messageCode": "E102"
+            "messageCode": "E203"
         })        
 @csrf_exempt
 def ht0120_count(request):
@@ -839,9 +847,20 @@ def ht0120_scan(request):
             data.get("code", "")
         ).strip()
 
+        partner_code = str(
+            data.get("partnerCode", "")
+        ).strip()
+
         qr_code = str(
             data.get("qrCode", "")
         ).strip()
+
+        print("========================================")
+        print("HT0120 SCAN")
+        print("HTNM =", htnm)
+        print("SELECTED PARTNER CODE =", partner_code)
+        print("QR =", qr_code)
+        print("========================================")
 
         # =====================================================
         # QR BLANK CHECK
@@ -853,37 +872,7 @@ def ht0120_scan(request):
                 "success": False,
                 "messageCode": "E211",
                 "param": "QR"
-            })
-
-        # =====================================================
-        # FIRST CHARACTER CHECK
-        # G OR F ONLY
-        # =====================================================
-
-        if qr_code[0] not in ["G", "F"]:
-
-            return JsonResponse({
-                "success": False,
-                "messageCode": "E220",
-                "param": "受入"
-            })
-
-        # =====================================================
-        # SQL02
-        # CHECK QR ALREADY REGISTERED
-        # =====================================================
-
-        count = check_qr_exists(qr_code)
-
-        print("HT0120 SQL02 QR =", qr_code)
-        print("HT0120 SQL02 COUNT =", count)
-
-        if count > 0:
-
-            return JsonResponse({
-                "success": False,
-                "messageCode": "E214"
-            })
+            })        
 
         # =====================================================
         # REGISTER QR
@@ -891,7 +880,8 @@ def ht0120_scan(request):
 
         result = register_qr(
             qr_code,
-            htnm
+            htnm,
+            partner_code
         )
 
         return JsonResponse(result)
@@ -904,3 +894,187 @@ def ht0120_scan(request):
             "success": False,
             "messageCode": "E102"
         })
+# ============================================================
+# HT0130 LIST
+# ============================================================
+
+# ============================================================
+# HT0130 LIST
+# ============================================================
+
+@csrf_exempt
+def ht0130_list(request):
+
+    if request.method != "GET":
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E203"
+        }, status=405)
+
+    try:
+
+        # ----------------------------------------------------
+        # Worker / HT number
+        # ----------------------------------------------------
+
+        htnm = request.GET.get(
+            "code",
+            ""
+        ).strip()
+
+        print("========================================")
+        print("HT0130 API")
+        print("HTNM =", htnm)
+        print("GET ACC + U-CERA + OTHER")
+        print("========================================")
+
+        # ----------------------------------------------------
+        # HT number check
+        # ----------------------------------------------------
+
+        if not htnm:
+
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E211",
+                "param": "作業者"
+            })
+
+        # ----------------------------------------------------
+        # Load all three result lists
+        #
+        # SQL 0-1 = ACC
+        # SQL 0-2 = U-Cera
+        # SQL 0-3 = Other
+        # ----------------------------------------------------
+
+        rows = get_ht0130_list(
+            htnm
+        )
+
+        # ----------------------------------------------------
+        # No data
+        # E212: XXX No data available.
+        # ----------------------------------------------------
+
+        if not rows:
+
+            return JsonResponse({
+                "success": True,
+                "rows": [],
+                "messageCode": "E212",
+                "param": "対象"
+            })
+
+        # ----------------------------------------------------
+        # Success
+        # ----------------------------------------------------
+
+        return JsonResponse({
+            "success": True,
+            "rows": rows
+        })
+
+    except Exception as e:
+
+        print("HT0130 API ERROR =", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E203"
+        }, status=500)
+# ============================================================
+# HT0130 DELETE
+# ============================================================
+
+@csrf_exempt
+def ht0130_delete(request):
+
+    if request.method != "POST":
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E203"
+        }, status=405)
+
+    try:
+        data = json.loads(request.body or "{}")
+
+        htnm = str(
+            data.get("code", "")
+        ).strip()
+
+        selected = data.get("selected")
+
+        # ====================================================
+        # No selected row
+        # ====================================================
+
+        if not selected:
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E211",
+                "param": "対象"
+            })
+
+        # ====================================================
+        # Worker code required
+        # ====================================================
+
+        if not htnm:
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E211",
+                "param": "作業者"
+            })
+
+        # ====================================================
+        # Partner code
+        # ====================================================
+
+        try:
+            partner_code = int(
+                selected.get("partnerCd", 0)
+            )
+
+        except (ValueError, TypeError):
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E203"
+            })
+
+        print("========================================")
+        print("HT0130 DELETE API")
+        print("HTNM =", htnm)
+        print("SELECTED =", selected)
+        print("PARTNER CODE =", partner_code)
+        print("========================================")
+
+        # ====================================================
+        # Delete
+        # ====================================================
+
+        result = delete_ht0130(
+            htnm,
+            partner_code,
+            selected
+        )
+
+        if not result.get("success"):
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E203"
+            })
+
+        return JsonResponse({
+            "success": True
+        })
+
+    except Exception as e:
+
+        print("HT0130 DELETE ERROR =", e)
+
+        return JsonResponse({
+            "success": False,
+            "messageCode": "E203"
+        }, status=500)

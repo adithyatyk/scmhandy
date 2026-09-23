@@ -3,12 +3,8 @@ from datetime import datetime
 from .connection import get_connection
 
 
-# ============================================================
-# SQL01 / SQL02 / SQL03
-# 未転送データチェック
-# ============================================================
-
 def check_untransferred_exists(htnm, partner_code):
+
     conn = None
     cursor = None
 
@@ -16,50 +12,70 @@ def check_untransferred_exists(htnm, partner_code):
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Partner code comes from HT0100 -> HT0110 frontend
         partner_code_int = int(partner_code)
+
+        # ====================================================
+        # ACC
+        # Original SQL01
+        # ====================================================
 
         if partner_code_int == 11:
 
-            # SQL01 : ACC
             cursor.execute("""
                 SELECT COUNT(*)
-                FROM TYKSFLIB.HTSTORAGE S
-                INNER JOIN TYKSFLIB.HTSTORADTL D
-                    ON S.SERNO = D.SERNO
-                WHERE S.HTNM = ?
-                  AND S.PARTNERCD = 11
-                  AND D.TAKEQTY > 0
-                  AND D.TRANSFEFLG = ' '
-            """, (htnm,))
+                FROM TYKSFLIB.HTSTORAGE
+                INNER JOIN TYKSFLIB.HTSTORADTL
+                    ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
+                WHERE
+                    HTSTORAGE.HTNM = ?
+                    AND HTSTORAGE.PARTNERCD = 11
+                    AND HTSTORADTL.TAKEQTY > 0
+                    AND HTSTORADTL.TRANSFEFLG = ''
+            """, (
+                htnm,
+            ))
+
+        # ====================================================
+        # U-Cera
+        # Original SQL02
+        # ====================================================
 
         elif partner_code_int == 12:
 
-            # SQL02 : U-Cera
             cursor.execute("""
                 SELECT COUNT(*)
-                FROM TYKSFLIB.HTSTORAGE S
-                INNER JOIN TYKSFLIB.HTSTORADTL D
-                    ON S.SERNO = D.SERNO
-                WHERE S.HTNM = ?
-                  AND S.PARTNERCD = 12
-                  AND D.TAKEQTY > 0
-                  AND D.TRANSFEFLG = ' '
-            """, (htnm,))
+                FROM TYKSFLIB.HTSTORAGE
+                INNER JOIN TYKSFLIB.HTSTORADTL
+                    ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
+                WHERE
+                    HTSTORAGE.HTNM = ?
+                    AND HTSTORAGE.PARTNERCD = 12
+                    AND HTSTORADTL.TAKEQTY > 0
+                    AND HTSTORADTL.TRANSFEFLG = ''
+            """, (
+                htnm,
+            ))
+
+        # ====================================================
+        # Other
+        # Original SQL03
+        # ====================================================
 
         else:
 
-            # SQL03 : Other
             cursor.execute("""
                 SELECT COUNT(*)
-                FROM TYKSFLIB.HTSTORAGE S
-                INNER JOIN TYKSFLIB.HTSTORADTL D
-                    ON S.SERNO = D.SERNO
-                WHERE S.HTNM = ?
-                  AND S.PARTNERCD NOT IN (11, 12)
-                  AND D.TAKEQTY > 0
-                  AND D.TRANSFEFLG = ' '
-            """, (htnm,))
+                FROM TYKSFLIB.HTSTORAGE
+                INNER JOIN TYKSFLIB.HTSTORADTL
+                    ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
+                WHERE
+                    HTSTORAGE.HTNM = ?
+                    AND HTSTORAGE.PARTNERCD NOT IN (11, 12)
+                    AND HTSTORADTL.TAKEQTY > 0
+                    AND HTSTORADTL.TRANSFEFLG = ''
+            """, (
+                htnm,
+            ))
 
         row = cursor.fetchone()
         count = int(row[0]) if row else 0
@@ -84,62 +100,43 @@ def check_untransferred_exists(htnm, partner_code):
         }
 
     except ValueError:
+
         return {
             "success": False,
-            "messageCode": "E102"
+            "messageCode": "E203"
         }
 
     except Exception:
+
         traceback.print_exc()
 
         return {
             "success": False,
-            "messageCode": "E102"
+            "messageCode": "E203"
         }
 
     finally:
+
         if cursor:
             cursor.close()
 
         if conn:
             conn.close()
-# ============================================================
-# 伝票№ / 注文番号 重複チェック
-# ============================================================
 
-# ============================================================
-# 伝票№ / 注文番号 重複チェック
-# SQL13 / SQL14 / SQL15
-# ============================================================
-
-def check_slip_no_exists(
-    slip_no,
-    partner_code,
-    htnm,
-    delivery_date=None
-):
-
+def check_slip_no_exists(slip_no, partner_code, htnm, delivery_date=None):
     conn = None
     cursor = None
 
     try:
-
         conn = get_connection()
         cursor = conn.cursor()
 
         partner_code_int = int(partner_code)
+        slip_no_text = str(slip_no).replace(" ", "").strip()
 
-        slip_no_text = (
-            str(slip_no)
-            .replace(" ", "")
-            .strip()
-        )
-
-        # ====================================================
+        # ============================================================
         # ACC
-        # SQL13
-        # ====================================================
-
+        # ============================================================
         if partner_code_int == 11:
 
             date_obj = datetime.strptime(
@@ -147,10 +144,7 @@ def check_slip_no_exists(
                 "%Y/%m/%d"
             )
 
-            delivery_value = int(
-                date_obj.strftime("%Y%m%d")
-            )
-
+            delivery_value = int(date_obj.strftime("%Y%m%d"))
             slip_no_int = int(slip_no_text)
 
             cursor.execute("""
@@ -165,11 +159,33 @@ def check_slip_no_exists(
                 slip_no_int
             ))
 
-        # ====================================================
-        # U-Cera
-        # SQL14
-        # ====================================================
+            row = cursor.fetchone()
+            count = int(row[0]) if row else 0
 
+            print("-----------------------------------")
+            print("HT0110 : ACC DUPLICATE CHECK")
+            print("HTNM         =", repr(htnm))
+            print("SLIPNO       =", slip_no_text)
+            print("DELIVERY     =", delivery_value)
+            print("EXISTS COUNT =", count)
+            print("-----------------------------------")
+
+            if count > 0:
+                return {
+                    "success": False,
+                    "exists": True,
+                    "messageCode": "E223",
+                    "param": ""
+                }
+
+            return {
+                "success": True,
+                "exists": False
+            }
+
+        # ============================================================
+        # U-Cera
+        # ============================================================
         elif partner_code_int == 12:
 
             slip_no_int = int(slip_no_text)
@@ -184,26 +200,38 @@ def check_slip_no_exists(
                 slip_no_int
             ))
 
-        # ====================================================
-        # Other
-        # SQL15
-        # ====================================================
+            row = cursor.fetchone()
+            count = int(row[0]) if row else 0
 
+            print("-----------------------------------")
+            print("HT0110 : U-CERA DUPLICATE CHECK")
+            print("HTNM         =", repr(htnm))
+            print("SLIPNO       =", slip_no_text)
+            print("EXISTS COUNT =", count)
+            print("-----------------------------------")
+
+            if count > 0:
+                return {
+                    "success": False,
+                    "exists": True,
+                    "messageCode": "E223",
+                    "param": ""
+                }
+
+            return {
+                "success": True,
+                "exists": False
+            }
+
+        # ============================================================
+        # その他
+        # ============================================================
+                # ============================================================
+        # その他
+        # ============================================================
         else:
 
-            # -----------------------------------------------
-            # Order Number format:
-            #
-            # YYYY MM SSS
-            # 2026 01 002
-            #
-            # ORDERFY    = LEFT 4
-            # ORDERMM    = MID 2
-            # ORDERSERNO = RIGHT 3
-            # -----------------------------------------------
-
-            if len(slip_no_text) != 8 or not slip_no_text.isdigit():
-
+            if not slip_no_text.isdigit() or len(slip_no_text) > 9:
                 return {
                     "success": False,
                     "exists": False,
@@ -211,17 +239,71 @@ def check_slip_no_exists(
                     "param": "注文番号"
                 }
 
-            order_fy = int(slip_no_text[:3])
-            order_mm = int(slip_no_text[3:5])
-            order_serno = int(slip_no_text[5:8])
+            print("===================================")
+            print("HT0110 : OTHER DUPLICATE CHECK")
+            print("INPUT ORDER NO =", repr(slip_no_text))
+            print("HTNM           =", repr(htnm))
+            print("===================================")
+
+            # --------------------------------------------------------
+            # First get the actual FY / MM / SERNO from ORDER
+            # using the entered order number.
+            # This is the SAME logic used by insert_slip_no().
+            # --------------------------------------------------------
+
+            cursor.execute("""
+                SELECT
+                    O.FY,
+                    O.MM,
+                    O.SERNO
+                FROM TYKSFLIB.ORDER AS O
+                WHERE
+                    (
+                        DIGITS(O.FY)
+                        CONCAT DIGITS(O.MM)
+                        CONCAT DIGITS(O.SERNO)
+                    ) = ?
+            """, (
+                slip_no_text,
+            ))
+
+            order_row = cursor.fetchone()
+
+            print("-----------------------------------")
+            print("HT0110 : ORDER MASTER CHECK")
+            print("ORDER ROW =", order_row)
+            print("-----------------------------------")
+
+            if not order_row:
+                return {
+                    "success": False,
+                    "exists": False,
+                    "messageCode": "E211",
+                    "param": "注文番号"
+                }
+
+            order_fy = int(order_row[0])
+            order_mm = int(order_row[1])
+            order_serno = int(order_row[2])
+
+            print("-----------------------------------")
+            print("HT0110 : ACTUAL ORDER VALUES")
+            print("ORDERFY        =", order_fy)
+            print("ORDERMM        =", order_mm)
+            print("ORDERSERNO     =", order_serno)
+            print("-----------------------------------")
+
+            # --------------------------------------------------------
+            # Now check HTSTORAGE using the ACTUAL values.
+            # --------------------------------------------------------
 
             cursor.execute("""
                 SELECT COUNT(*)
                 FROM TYKSFLIB.HTSTORAGE
                 WHERE HTNM = ?
-                AND ORDERFY = ?
-                AND ORDERMM = ?
-                AND ORDERSERNO = ?
+                  AND ORDERFY = ?
+                  AND ORDERMM = ?
+                  AND ORDERSERNO = ?
             """, (
                 htnm,
                 order_fy,
@@ -229,65 +311,52 @@ def check_slip_no_exists(
                 order_serno
             ))
 
-        row = cursor.fetchone()
+            row = cursor.fetchone()
+            count = int(row[0]) if row else 0
 
-        count = int(row[0]) if row else 0
-
-        print("-----------------------------------")
-        print("HT0110 : SLIPNO CHECK")
-        print("HTNM         =", htnm)
-        print("SLIPNO       =", slip_no_text)
-        print("PARTNER CODE =", partner_code_int)
-
-        if partner_code_int == 11:
-            print("DELIVERY     =", delivery_value)
-
-        elif partner_code_int == 0:
+            print("-----------------------------------")
+            print("HT0110 : OTHER DUPLICATE RESULT")
+            print("HTNM         =", repr(htnm))
             print("ORDERFY      =", order_fy)
             print("ORDERMM      =", order_mm)
             print("ORDERSERNO   =", order_serno)
+            print("EXISTS COUNT =", count)
+            print("-----------------------------------")
 
-        print("EXISTS COUNT =", count)
-        print("-----------------------------------")
+            if count > 0:
 
-        if count > 0:
+                print(">>> E223 DUPLICATE FOUND <<<")
+                print(">>> INSERT WILL NOT EXECUTE <<<")
+
+                return {
+                    "success": False,
+                    "exists": True,
+                    "messageCode": "E223",
+                    "param": ""
+                }
+
             return {
-                "success": False,
-                "exists": True,
-                "messageCode": "E221",
-                "param": "入庫"
+                "success": True,
+                "exists": False
             }
 
-        return {
-            "success": True,
-            "exists": False
-        }
-
     except ValueError:
-
         return {
             "success": False,
             "exists": False,
             "messageCode": "E211",
-            "param": (
-                "注文番号"
-                if str(partner_code) == "0"
-                else "伝票№"
-            )
+            "param": "注文番号" if str(partner_code) == "0" else "伝票№"
         }
 
     except Exception:
-
         traceback.print_exc()
-
         return {
             "success": False,
             "exists": False,
-            "messageCode": "E102"
+            "messageCode": "E203"
         }
 
     finally:
-
         if cursor:
             cursor.close()
 
@@ -374,34 +443,7 @@ def insert_slip_no(
                 slip_no_int = int(
                     str(slip_no).replace(" ", "").strip()
                 )
-
-                # --------------------------------------------
-                # Duplicate check
-                # --------------------------------------------
-
-                cursor.execute("""
-                    SELECT COUNT(*)
-                    FROM TYKSFLIB.HTSTORAGE
-                    WHERE PARTNERCD = 11
-                      AND SLIPNO = ?
-                """, (
-                    slip_no_int,
-                ))
-
-                row = cursor.fetchone()
-
-                count = int(row[0]) if row else 0
-
-                if count > 0:
-
-                    return {
-                        "success": False,
-                        "exists": True,
-                        "messageCode": "E221",
-                        "param": "入庫",
-                        "slipNo": str(slip_no_int)
-                    }
-
+                
                 # --------------------------------------------
                 # Get ACC source data
                 # --------------------------------------------
@@ -412,40 +454,38 @@ def insert_slip_no(
                         A.DENPNO,
                         C.SYHNCD,
 
-                        CASE
-                            WHEN G.GOMANA IS NULL
-                            THEN REPLACE(
-                                CONCAT(C.ZISIT1, C.ZISIT2),
-                                ',',
-                                ' '
-                            )
-                            ELSE G.GOMANA
-                        END AS MATERIAL,
+                        REPLACE(
+                            CONCAT(C.ZISIT1, C.ZISIT2),
+                            ',',
+                            ' '
+                        ) AS MATERIAL,
 
-                        CASE
-                            WHEN G.GOMATK IS NULL
-                            THEN CONCAT(C.HINME1, C.HINME2)
-                            ELSE G.GOMATK
-                        END AS SYMBOL,
+                        CONCAT(
+                            C.HINME1,
+                            C.HINME2
+                        ) AS SYMBOL,
 
-                        C.SYUKSU
+                        C.SYUKSU,
+
+                        G.GOMANA,
+                        G.GOMATK
 
                     FROM ACCSFLIB.FHB0 AS A
 
                     INNER JOIN ACCSFLIB.FHC0 AS C
                         ON A.DENPNO = C.DENPNO
-                    AND A.HASOBI = C.HASOBI
+                       AND A.HASOBI = C.HASOBI
 
                     LEFT JOIN PRDLIBF.GOMAST AS G
                         ON C.SYHNCD = G.GOMANO
 
                     WHERE A.HASOBI = ?
-                    AND A.DENPNO = ?
-                    AND A.@@JKX = ''
-                    AND C.@@JKX = ''
+                      AND A.DENPNO = ?
+                      AND A.@@JKX = ''
+                      AND C.@@JKX = ''
 
                     ORDER BY A.DENPNO
-                """
+                """                   
 
                 print("-----------------------------------")
                 print("HT0110 : ACC SQL")
@@ -503,9 +543,11 @@ def insert_slip_no(
                         syhncd,
                         material,
                         symbol,
-                        syuksu
+                        syuksu,
+                        gomana,
+                        gomatk
                     ) = source_row
-                    
+
                     # ----------------------------------------
                     # Material
                     #
@@ -515,8 +557,29 @@ def insert_slip_no(
 
                     item_cd = int(syhncd or 0)
 
-                    material = str(material or "").strip()
-                    symbol = str(symbol or "").strip()
+                    # ------------------------------------------------
+                    # MATERIAL
+                    #
+                    # If GOMAST.GOMANA exists, use GOMANA.
+                    # Otherwise use FHC0 material.
+                    # ------------------------------------------------
+
+                    if gomana is not None:
+                        material = str(gomana).strip()
+                    else:
+                        material = str(material or "").strip()
+
+                    # ------------------------------------------------
+                    # SYMBOL
+                    #
+                    # If GOMAST.GOMATK exists, use GOMATK.
+                    # Otherwise use FHC0 symbol.
+                    # ------------------------------------------------
+
+                    if gomatk is not None:
+                        symbol = str(gomatk).strip()
+                    else:
+                        symbol = str(symbol or "").strip()
 
                     qty = int(syuksu or 0)
 
@@ -591,12 +654,6 @@ def insert_slip_no(
         # SQL11
         # ====================================================
 
-                # ====================================================
-        # U-Cera
-        # PARTNER CODE = 12
-        # SQL11
-        # ====================================================
-
         elif partner_code_int == 12:
 
             for slip_no in slip_numbers:
@@ -604,42 +661,6 @@ def insert_slip_no(
                 slip_no_int = int(
                     str(slip_no).replace(" ", "").strip()
                 )
-
-                # --------------------------------------------
-                # SQL14 : Duplicate check
-                #
-                # HTNM = Worker Code
-                # SLIPNO = Number List
-                # --------------------------------------------
-
-                cursor.execute("""
-                    SELECT COUNT(*)
-                    FROM TYKSFLIB.HTSTORAGE
-                    WHERE HTNM = ?
-                      AND SLIPNO = ?
-                """, (
-                    htnm,
-                    slip_no_int
-                ))
-
-                row = cursor.fetchone()
-
-                count = int(row[0]) if row else 0
-
-                print("-----------------------------------")
-                print("HT0110 : U-CERA DUPLICATE CHECK")
-                print("HTNM         =", htnm)
-                print("SLIPNO       =", slip_no_int)
-                print("EXISTS COUNT =", count)
-                print("-----------------------------------")
-
-                if count > 0:
-
-                    return {
-                        "success": False,
-                        "exists": True,
-                        "slipNo": str(slip_no_int)
-                    }
 
                 # --------------------------------------------
                 # SQL11 : Get U-Cera source data
@@ -714,25 +735,29 @@ def insert_slip_no(
                     serno = get_next_serno(cursor)
 
                     # ----------------------------------------
+                    # ----------------------------------------
                     # MATERIAL
-                    # GOMANA != NULL -> ZSZSRY
+                    #
+                    # Default = ZAISM.ZSZSRY
+                    # If GOMAST.GOMANA exists, use GOMANA
                     # ----------------------------------------
 
-                    material = ""
-
                     if gomana is not None:
+                        material = str(gomana).strip()
+                    else:
                         material = str(zszsry or "").strip()
 
                     # ----------------------------------------
                     # SYMBOL
-                    # GOMATK != NULL -> GOMATK
+                    #
+                    # Default = HSMSD.HMSHNM
+                    # If GOMAST.GOMATK exists, use GOMATK
                     # ----------------------------------------
-
-                    symbol = ""
 
                     if gomatk is not None:
                         symbol = str(gomatk).strip()
-
+                    else:
+                        symbol = str(hmshnm or "").strip()
                     # ----------------------------------------
                     # INSERT HTSTORAGE
                     # ----------------------------------------
@@ -840,7 +865,7 @@ def insert_slip_no(
                         D.ITEMCD,
                         D.MATERIAL,
                         D.SYMBOL,
-                        D.QTY AS QTY
+                        (D.QTY - D.HTTAKEQTY) AS QTY
                     FROM TYKSFLIB.ORDER AS O
 
                     INNER JOIN TYKSFLIB.ORDERDTL AS D
@@ -995,7 +1020,7 @@ def insert_slip_no(
 
         return {
             "success": False,
-            "messageCode": "E102"
+            "messageCode": "E203"
         }
 
     finally:

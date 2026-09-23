@@ -25,6 +25,7 @@ from .ht_views import (
     ht0120_count,
     ht0120_scan
 )
+from .ht_views import (ht0130_list,ht0130_delete)
 urlpatterns = [
 
     path("form/",form_data),
@@ -66,6 +67,10 @@ urlpatterns = [
     path("ht0120/count/", ht0120_count),
     
     path("ht0120/scan/", ht0120_scan),
+
+     path("ht0130/list/",ht0130_list),
+
+     path("ht0130/delete/",ht0130_delete),
     
 ]
 

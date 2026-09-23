@@ -11,11 +11,14 @@ def get_storage_count(htnm):
 
         sql = """
             SELECT COUNT(*)
-            FROM TYKSFLIB.HTSTORAGE
-            INNER JOIN TYKSFLIB.HTSTORADTL
-                ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
-            WHERE HTSTORAGE.HTNM = ?
-        """
+            FROM (
+                SELECT DISTINCT HTSTORAGE.SERNO
+                FROM TYKSFLIB.HTSTORAGE
+                INNER JOIN TYKSFLIB.HTSTORADTL
+                    ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
+                WHERE HTSTORAGE.HTNM = ?
+            ) AS T
+        """ 
 
         params = [htnm]
 
@@ -66,8 +69,8 @@ def check_qr_exists(qr_code):
 
         count = int(row[0]) if row else 0
         
-        print("HT0120 SQL02 QR =", qr_code)
-        print("HT0120 SQL02 COUNT =", count)
+        print("HT0120 SQL03 QR =", qr_code)
+        print("HT0120 SQL03 COUNT =", count)
 
         return count
 
@@ -92,34 +95,45 @@ def get_first_storage_item(
         conn = get_connection()
         cursor = conn.cursor()
 
-        sql = """
-            SELECT
-                HTSTORAGE.SERNO
+        if int(partner_cd) == 11:
+            partner_condition = "= 11"
+        elif int(partner_cd) == 12:
+            partner_condition = "= 12"
+        else:
+            partner_condition = "NOT IN (11, 12)"
+
+        sql = f"""
+            SELECT HTSTORAGE.SERNO
             FROM TYKSFLIB.HTSTORAGE
-            LEFT JOIN TYKSFLIB.HTSTORADTL
+            INNER JOIN TYKSFLIB.HTSTORADTL
                 ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
             WHERE HTSTORAGE.HTNM = ?
-              AND HTSTORAGE.PARTNERCD = ?
-              AND HTSTORAGE.ITEMCD = ?
-              AND HTSTORAGE.MATERIAL = ?
-              AND HTSTORAGE.SYMBOL = ?
+            AND HTSTORAGE.PARTNERCD {partner_condition}
+            AND (
+                    HTSTORAGE.ITEMCD = ?
+                    OR (
+                        HTSTORAGE.MATERIAL = ?
+                        AND HTSTORAGE.SYMBOL = ?
+                    )
+                )
+            AND HTSTORADTL.QR = ''
             GROUP BY
                 HTSTORAGE.SERNO,
                 HTSTORAGE.QTY
             HAVING
-                HTSTORAGE.QTY -
-                COALESCE(SUM(HTSTORADTL.TAKEQTY), 0) >= ?
+                HTSTORAGE.QTY >= SUM(HTSTORADTL.TAKEQTY) + ?
             ORDER BY
+                HTSTORAGE.QTY - SUM(HTSTORADTL.TAKEQTY) - ?,
                 HTSTORAGE.SERNO
             FETCH FIRST 1 ROW ONLY
         """
 
         params = [
             htnm,
-            int(partner_cd),
             int(product_cd),
             material,
             symbol,
+            int(quantity),
             int(quantity)
         ]
 
@@ -275,11 +289,53 @@ def insert_storage_detail(
 
         if conn:
             conn.close()            
-def register_qr(qr_code, htnm):
+def register_qr(qr_code, htnm, partner_code):
     conn = None
     cursor = None
 
     try:
+        # =====================================================
+        # QR BASIC VALIDATION
+        # =====================================================
+
+        qr_code = qr_code.strip()
+
+        if not qr_code:
+            return {
+                "success": False,
+                "messageCode": "E211",
+                "param": "QR"
+            }
+
+        if qr_code[0] != "G" and qr_code[0] != "F":
+            return {
+                "success": False,
+                "messageCode": "E220",
+                "param": "受入"
+            }
+
+
+        # =====================================================
+        # SQL03 - DUPLICATE CHECK
+        # =====================================================
+
+        try:
+            duplicate_count = check_qr_exists(qr_code)
+
+            if duplicate_count > 0:
+                return {
+                    "success": False,
+                    "messageCode": "E214"
+                }
+
+        except Exception as e:
+            print("HT0120 SQL03 ERROR:", e)
+
+            return {
+                "success": False,
+                "messageCode": "E206",
+                "param": "受入"
+            }
         # =====================================================
         # QR PARSE
         # =====================================================
@@ -301,26 +357,84 @@ def register_qr(qr_code, htnm):
 
         try:
             partner_cd = int(fields[1])
+            selected_partner_code = int(partner_code)
+
+            print("========================================")
+            print("HT0120 PARTNER VALIDATION")
+            print("SELECTED PARTNER CODE =", selected_partner_code)
+            print("QR PARTNER CODE =", partner_cd)
+            print("========================================")
+
+            # =================================================
+            # CHECK SELECTED PARTNER VS QR PARTNER
+            # =================================================
+
+            if selected_partner_code == 0:
+
+                # Other:
+                # Do not restrict QR partner.
+                print("HT0120 OTHER - QR PARTNER ACCEPTED")
+
+            else:
+
+                # ACC = 11
+                # U-Cera = 12
+
+                if partner_cd != selected_partner_code:
+
+                    print("HT0120 PARTNER MISMATCH")
+
+                    return {
+                        "success": False,
+                        "messageCode": "E220",
+                        "param": "受入"
+                    }
+
+            print("HT0120 PARTNER VALIDATION PASSED")
+
+            # =================================================
+            # STORAGE PARTNER CONDITION
+            # =================================================
 
             if partner_cd == 11:
+
                 partner_condition = "HTSTORAGE.PARTNERCD = 11"
 
             elif partner_cd == 12:
+
                 partner_condition = "HTSTORAGE.PARTNERCD = 12"
 
             else:
+
                 partner_condition = "HTSTORAGE.PARTNERCD NOT IN (11, 12)"
+
+            print(
+                "HT0120 PARTNER CONDITION =",
+                partner_condition
+            )
+
+            # =================================================
+            # HEADER VALUES
+            # =================================================
 
             lot = int(fields[2])
             confirm_no = int(fields[3])
             destinat_cd = int(fields[4])
-        except (ValueError, TypeError):
+
+            print("HT0120 HEADER PARSED")
+            print("LOT =", lot)
+            print("CONFIRMNO =", confirm_no)
+            print("DESTINATCD =", destinat_cd)
+
+        except (ValueError, TypeError, IndexError) as e:
+
+            print("HT0120 HEADER PARSE ERROR =", e)
+
             return {
                 "success": False,
                 "messageCode": "E220",
                 "param": "受入"
             }
-
         # =====================================================
         # DETAIL PARSE
         # =====================================================
@@ -330,21 +444,36 @@ def register_qr(qr_code, htnm):
 
         if conf_type == "G":
 
-            if len(detail_fields) == 0 or len(detail_fields) % 4 != 0:
-                return {
-                    "success": False,
-                    "messageCode": "E220",
-                    "param": "受入"
-                }
+            # =================================================
+            # G TYPE
+            #
+            # Single item:
+            # G,PARTNER,LOT,CONFIRMNO,ITEMCD,MATERIAL,SYMBOL,QTY
+            #
+            # Multiple items:
+            # G,PARTNER,LOT,CONFIRMNO,DESTINATCD,
+            # ITEMCD,MATERIAL,SYMBOL,QTY,
+            # ITEMCD,MATERIAL,SYMBOL,QTY,...
+            # =================================================
 
-            for i in range(0, len(detail_fields), 4):
+            # -------------------------------------------------
+            # SINGLE ITEM G QR
+            # Example:
+            # G,11,20260821,78,4180001,NF7,LH123,10
+            # -------------------------------------------------
+
+            if len(fields) == 8:
 
                 try:
-                    item_cd = int(detail_fields[i])
-                    material = detail_fields[i + 1].strip()
-                    symbol = detail_fields[i + 2].strip()
-                    quantity = int(detail_fields[i + 3])
-                except (ValueError, TypeError):
+                    item_cd = int(fields[4])
+                    material = fields[5].strip()
+                    symbol = fields[6].strip()
+                    quantity = int(fields[7])
+
+                except (ValueError, TypeError, IndexError) as e:
+
+                    print("HT0120 SINGLE G PARSE ERROR =", e)
+
                     return {
                         "success": False,
                         "messageCode": "E220",
@@ -357,6 +486,54 @@ def register_qr(qr_code, htnm):
                     "symbol": symbol,
                     "quantity": quantity
                 })
+
+                print("========================================")
+                print("HT0120 SINGLE G QR")
+                print("ITEMCD =", item_cd)
+                print("MATERIAL =", material)
+                print("SYMBOL =", symbol)
+                print("QTY =", quantity)
+                print("========================================")
+
+            # -------------------------------------------------
+            # MULTIPLE ITEM G QR
+            # Existing working format
+            # -------------------------------------------------
+
+            else:
+
+                if len(detail_fields) == 0 or len(detail_fields) % 4 != 0:
+
+                    return {
+                        "success": False,
+                        "messageCode": "E220",
+                        "param": "受入"
+                    }
+
+                for i in range(0, len(detail_fields), 4):
+
+                    try:
+                        item_cd = int(detail_fields[i])
+                        material = detail_fields[i + 1].strip()
+                        symbol = detail_fields[i + 2].strip()
+                        quantity = int(detail_fields[i + 3])
+
+                    except (ValueError, TypeError, IndexError) as e:
+
+                        print("HT0120 MULTI G PARSE ERROR =", e)
+
+                        return {
+                            "success": False,
+                            "messageCode": "E220",
+                            "param": "受入"
+                        }
+
+                    details.append({
+                        "item_cd": item_cd,
+                        "material": material,
+                        "symbol": symbol,
+                        "quantity": quantity
+                    })
 
         elif conf_type == "F":
 
@@ -447,9 +624,13 @@ def register_qr(qr_code, htnm):
                 FROM TYKSFLIB.HTSTORAGE
                 WHERE HTSTORAGE.HTNM = ?
                 AND {partner_condition}
-                AND HTSTORAGE.ITEMCD = ?
-                AND HTSTORAGE.MATERIAL = ?
-                AND HTSTORAGE.SYMBOL = ?
+                AND (
+                        HTSTORAGE.ITEMCD = ?
+                        OR (
+                            HTSTORAGE.MATERIAL = ?
+                            AND HTSTORAGE.SYMBOL = ?
+                        )
+                    )
             """
 
             debug_params = [
@@ -483,23 +664,26 @@ def register_qr(qr_code, htnm):
                 SELECT
                     HTSTORAGE.SERNO
                 FROM TYKSFLIB.HTSTORAGE
-                INNER JOIN TYKSFLIB.HTSTORADTL
+                LEFT JOIN TYKSFLIB.HTSTORADTL
                     ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
                 WHERE HTSTORAGE.HTNM = ?
                 AND {partner_condition}
-                AND HTSTORAGE.ITEMCD = ?
-                AND HTSTORAGE.MATERIAL = ?
-                AND HTSTORAGE.SYMBOL = ?
-                AND HTSTORADTL.QR = ''
+                AND (
+                        HTSTORAGE.ITEMCD = ?
+                        OR (
+                            HTSTORAGE.MATERIAL = ?
+                            AND HTSTORAGE.SYMBOL = ?
+                        )
+                    )
                 GROUP BY
                     HTSTORAGE.SERNO,
                     HTSTORAGE.QTY
                 HAVING
                     HTSTORAGE.QTY >=
-                    SUM(HTSTORADTL.TAKEQTY) + ?
+                    COALESCE(SUM(HTSTORADTL.TAKEQTY), 0) + ?
                 ORDER BY
                     HTSTORAGE.QTY -
-                    SUM(HTSTORADTL.TAKEQTY) - ?,
+                    COALESCE(SUM(HTSTORADTL.TAKEQTY), 0) - ?,
                     HTSTORAGE.SERNO
                 FETCH FIRST 1 ROW ONLY
             """
