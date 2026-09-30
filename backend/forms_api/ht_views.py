@@ -847,10 +847,6 @@ def ht0120_scan(request):
             data.get("code", "")
         ).strip()
 
-        partner_code = str(
-            data.get("partnerCode", "")
-        ).strip()
-
         qr_code = str(
             data.get("qrCode", "")
         ).strip()
@@ -858,9 +854,20 @@ def ht0120_scan(request):
         print("========================================")
         print("HT0120 SCAN")
         print("HTNM =", htnm)
-        print("SELECTED PARTNER CODE =", partner_code)
         print("QR =", qr_code)
         print("========================================")
+
+        # =====================================================
+        # WORKER CODE CHECK
+        # =====================================================
+
+        if not htnm:
+
+            return JsonResponse({
+                "success": False,
+                "messageCode": "E211",
+                "param": "作業者"
+            })
 
         # =====================================================
         # QR BLANK CHECK
@@ -872,7 +879,7 @@ def ht0120_scan(request):
                 "success": False,
                 "messageCode": "E211",
                 "param": "QR"
-            })        
+            })
 
         # =====================================================
         # REGISTER QR
@@ -880,8 +887,7 @@ def ht0120_scan(request):
 
         result = register_qr(
             qr_code,
-            htnm,
-            partner_code
+            htnm
         )
 
         return JsonResponse(result)
@@ -894,13 +900,6 @@ def ht0120_scan(request):
             "success": False,
             "messageCode": "E102"
         })
-# ============================================================
-# HT0130 LIST
-# ============================================================
-
-# ============================================================
-# HT0130 LIST
-# ============================================================
 
 @csrf_exempt
 def ht0130_list(request):

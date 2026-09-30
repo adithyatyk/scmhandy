@@ -12,12 +12,12 @@ def get_acc_list(htnm):
         SELECT
             HTSTORAGE.SLIPNO,
             SUM(HTSTORAGE.QTY),
-            SUM(HTSTORADTL.TAKEQTY),
-            HTSTORADTL.TRANSFEFLG,
+            COALESCE(SUM(HTSTORADTL.TAKEQTY), 0),
+            COALESCE(HTSTORADTL.TRANSFEFLG, ''),
             HTSTORAGE.DELIVERY,
             HTSTORAGE.PARTNERCD
         FROM TYKSFLIB.HTSTORAGE
-        INNER JOIN TYKSFLIB.HTSTORADTL
+        LEFT JOIN TYKSFLIB.HTSTORADTL
             ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
         WHERE
             HTSTORAGE.HTNM = ?
@@ -63,12 +63,12 @@ def get_ucera_list(htnm):
         SELECT
             HTSTORAGE.SLIPNO,
             SUM(HTSTORAGE.QTY),
-            SUM(HTSTORADTL.TAKEQTY),
-            HTSTORADTL.TRANSFEFLG,
+            COALESCE(SUM(HTSTORADTL.TAKEQTY), 0),
+            COALESCE(HTSTORADTL.TRANSFEFLG, ''),
             HTSTORAGE.DELIVERY,
             HTSTORAGE.PARTNERCD
         FROM TYKSFLIB.HTSTORAGE
-        INNER JOIN TYKSFLIB.HTSTORADTL
+        LEFT JOIN TYKSFLIB.HTSTORADTL
             ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
         WHERE
             HTSTORAGE.HTNM = ?
@@ -106,6 +106,129 @@ def get_ucera_list(htnm):
 # ============================================================
 # SQL 0-3 : Other outsourced
 # ============================================================
+# ============================================================
+# HT0130 LIST
+# ============================================================
+
+def get_ht0130_list(htnm):
+
+    acc_rows = get_acc_list(htnm)
+    ucera_rows = get_ucera_list(htnm)
+    other_rows = get_other_list(htnm)
+
+    rows = []
+
+    # ========================================================
+    # ACC / U-Cera
+    # ========================================================
+
+    for row in acc_rows + ucera_rows:
+
+        qty = row.get("qty", 0) or 0
+        take_qty = row.get("takeQty", 0) or 0
+
+        # ----------------------------------------
+        # Result
+        # ----------------------------------------
+
+        if qty == take_qty:
+            result = "OK"
+
+        elif take_qty == 0:
+            result = "未"
+
+        elif qty < take_qty:
+            result = "超過"
+
+        else:
+            result = "不足"
+
+        # ----------------------------------------
+        # Transfer
+        # ----------------------------------------
+
+        if str(row.get("transfeFlg", "")).strip() == "1":
+            transfer = "済"
+        else:
+            transfer = "未"
+
+        rows.append({
+            "slipNo": row.get("slipNo"),
+            "orderFy": None,
+            "orderMm": None,
+            "orderSerNo": None,
+
+            "qty": qty,
+            "takeQty": take_qty,
+            "htTakeQty": 0,
+
+            "transfeFlg": row.get("transfeFlg"),
+            "result": result,
+            "transfer": transfer,
+
+            "delivery": row.get("delivery"),
+            "partnerCd": row.get("partnerCd"),
+        })
+
+    # ========================================================
+    # Other outsourced
+    # ========================================================
+
+    for row in other_rows:
+
+        qty = row.get("qty", 0) or 0
+        take_qty = row.get("takeQty", 0) or 0
+        ht_take_qty = row.get("htTakeQty", 0) or 0
+
+        # Required calculation:
+        # SUM(TAKEQTY) + SUM(HTTAKEQTY)
+        total_take_qty = take_qty + ht_take_qty
+
+        # ----------------------------------------
+        # Result
+        # ----------------------------------------
+
+        if qty == total_take_qty:
+            result = "OK"
+
+        elif total_take_qty == 0:
+            result = "未"
+
+        elif qty < total_take_qty:
+            result = "超過"
+
+        else:
+            result = "不足"
+
+        # ----------------------------------------
+        # Transfer
+        # ----------------------------------------
+
+        if str(row.get("transfeFlg", "")).strip() == "1":
+            transfer = "済"
+        else:
+            transfer = "未"
+
+        rows.append({
+            "slipNo": None,
+
+            "orderFy": row.get("orderFy"),
+            "orderMm": row.get("orderMm"),
+            "orderSerNo": row.get("orderSerNo"),
+
+            "qty": qty,
+            "takeQty": take_qty,
+            "htTakeQty": ht_take_qty,
+
+            "transfeFlg": row.get("transfeFlg"),
+            "result": result,
+            "transfer": transfer,
+
+            "delivery": row.get("delivery"),
+            "partnerCd": 0,
+        })
+
+    return rows
 
 def get_other_list(htnm):
     conn = get_connection()
@@ -116,12 +239,12 @@ def get_other_list(htnm):
             HTSTORAGE.ORDERMM,
             HTSTORAGE.ORDERSERNO,
             SUM(HTSTORAGE.QTY),
-            SUM(HTSTORADTL.TAKEQTY),
-            HTSTORADTL.TRANSFEFLG,
+            COALESCE(SUM(HTSTORADTL.TAKEQTY), 0),
+            COALESCE(HTSTORADTL.TRANSFEFLG, ''),
             HTSTORAGE.DELIVERY,
             0 AS PARTNERCD
         FROM TYKSFLIB.HTSTORAGE
-        INNER JOIN TYKSFLIB.HTSTORADTL
+        LEFT JOIN TYKSFLIB.HTSTORADTL
             ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
         WHERE
             HTSTORAGE.HTNM = ?
@@ -156,8 +279,6 @@ def get_other_list(htnm):
 
     finally:
         conn.close()
-
-
 # ============================================================
 # HT0130 LIST
 # ============================================================
@@ -181,18 +302,22 @@ def get_ht0130_list(htnm):
         # Result
         # ----------------------------------------
 
+        qty = row.get("qty", 0) or 0
+        take_qty = row.get("takeQty", 0) or 0
+
         if qty == take_qty:
             result = "OK"
-
         elif take_qty == 0:
             result = "未"
-
-        elif qty > take_qty:
+        elif qty < take_qty:
+            result = "超過"
+        else:
             result = "不足"
 
+        if str(row.get("transfeFlg", "")).strip() == "1":
+            transfer = "済"
         else:
-            result = "超過"
-
+            transfer = "未"
         # ----------------------------------------
         # Transfer
         # ----------------------------------------
@@ -260,12 +385,9 @@ def get_serno_acc_ucera(
             )
         )
 
-        row = cur.fetchone()
+        rows = cur.fetchall()
 
-        if row:
-            return row[0]
-
-        return None
+        return [row[0] for row in rows]
 
     finally:
         conn.close()
@@ -280,7 +402,6 @@ def get_serno_other(
     order_fy,
     order_mm,
     order_serno,
-    delivery,
     transfe_flg
 ):
     conn = get_connection()
@@ -296,7 +417,6 @@ def get_serno_other(
             AND HTSTORAGE.ORDERFY = ?
             AND HTSTORAGE.ORDERMM = ?
             AND HTSTORAGE.ORDERSERNO = ?
-            AND HTSTORAGE.DELIVERY = ?
             AND HTSTORADTL.TRANSFEFLG = ?
     """
 
@@ -310,21 +430,16 @@ def get_serno_other(
                 order_fy,
                 order_mm,
                 order_serno,
-                delivery,
                 transfe_flg,
             )
         )
 
-        row = cur.fetchone()
+        rows = cur.fetchall()
 
-        if row:
-            return row[0]
-
-        return None
+        return [row[0] for row in rows]
 
     finally:
         conn.close()
-
 
 # ============================================================
 # DELETE HT0130
@@ -367,7 +482,7 @@ def delete_ht0130(htnm, partner_code, selected):
             order_fy = selected.get("orderFy")
             order_mm = selected.get("orderMm")
             order_serno = selected.get("orderSerNo")
-            delivery = selected.get("delivery")
+            # delivery = selected.get("delivery")
             transfe_flg = selected.get("transfeFlg")
 
             serno = get_serno_other(
@@ -375,7 +490,7 @@ def delete_ht0130(htnm, partner_code, selected):
                 order_fy,
                 order_mm,
                 order_serno,
-                delivery,
+                # delivery,
                 transfe_flg
             )
 
@@ -383,7 +498,7 @@ def delete_ht0130(htnm, partner_code, selected):
         # SERNO not found
         # ====================================================
 
-        if serno is None:
+        if not serno:
             return {
                 "success": False
             }
@@ -401,10 +516,11 @@ def delete_ht0130(htnm, partner_code, selected):
             WHERE SERNO = ?
         """
 
-        cur.execute(
-            delete_sql,
-            (serno,)
-        )
+        for current_serno in serno:
+            cur.execute(
+                delete_sql,
+                (current_serno,)
+            )
 
         conn.commit()
 

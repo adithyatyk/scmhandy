@@ -82,7 +82,6 @@ def check_qr_exists(qr_code):
             conn.close()
 def get_first_storage_item(
     htnm,
-    partner_cd,
     product_cd,
     material,
     symbol,
@@ -93,14 +92,7 @@ def get_first_storage_item(
 
     try:
         conn = get_connection()
-        cursor = conn.cursor()
-
-        if int(partner_cd) == 11:
-            partner_condition = "= 11"
-        elif int(partner_cd) == 12:
-            partner_condition = "= 12"
-        else:
-            partner_condition = "NOT IN (11, 12)"
+        cursor = conn.cursor()        
 
         sql = f"""
             SELECT HTSTORAGE.SERNO
@@ -108,7 +100,6 @@ def get_first_storage_item(
             INNER JOIN TYKSFLIB.HTSTORADTL
                 ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
             WHERE HTSTORAGE.HTNM = ?
-            AND HTSTORAGE.PARTNERCD {partner_condition}
             AND (
                     HTSTORAGE.ITEMCD = ?
                     OR (
@@ -289,7 +280,7 @@ def insert_storage_detail(
 
         if conn:
             conn.close()            
-def register_qr(qr_code, htnm, partner_code):
+def register_qr(qr_code, htnm):
     conn = None
     cursor = None
 
@@ -350,81 +341,19 @@ def register_qr(qr_code, htnm, partner_code):
             }
 
         conf_type = fields[0].strip()
-
         # =====================================================
         # HEADER
         # =====================================================
 
         try:
-            partner_cd = int(fields[1])
-            selected_partner_code = int(partner_code)
-
-            print("========================================")
-            print("HT0120 PARTNER VALIDATION")
-            print("SELECTED PARTNER CODE =", selected_partner_code)
-            print("QR PARTNER CODE =", partner_cd)
-            print("========================================")
-
-            # =================================================
-            # CHECK SELECTED PARTNER VS QR PARTNER
-            # =================================================
-
-            if selected_partner_code == 0:
-
-                # Other:
-                # Do not restrict QR partner.
-                print("HT0120 OTHER - QR PARTNER ACCEPTED")
-
-            else:
-
-                # ACC = 11
-                # U-Cera = 12
-
-                if partner_cd != selected_partner_code:
-
-                    print("HT0120 PARTNER MISMATCH")
-
-                    return {
-                        "success": False,
-                        "messageCode": "E220",
-                        "param": "受入"
-                    }
-
-            print("HT0120 PARTNER VALIDATION PASSED")
-
-            # =================================================
-            # STORAGE PARTNER CONDITION
-            # =================================================
-
-            if partner_cd == 11:
-
-                partner_condition = "HTSTORAGE.PARTNERCD = 11"
-
-            elif partner_cd == 12:
-
-                partner_condition = "HTSTORAGE.PARTNERCD = 12"
-
-            else:
-
-                partner_condition = "HTSTORAGE.PARTNERCD NOT IN (11, 12)"
-
-            print(
-                "HT0120 PARTNER CONDITION =",
-                partner_condition
-            )
-
-            # =================================================
-            # HEADER VALUES
-            # =================================================
-
             lot = int(fields[2])
             confirm_no = int(fields[3])
-            destinat_cd = int(fields[4])
 
-            print("HT0120 HEADER PARSED")
+            print("========================================")
+            print("HT0120 HEADER")
             print("LOT =", lot)
             print("CONFIRMNO =", confirm_no)
-            print("DESTINATCD =", destinat_cd)
+            print("========================================")
 
         except (ValueError, TypeError, IndexError) as e:
 
@@ -435,6 +364,7 @@ def register_qr(qr_code, htnm, partner_code):
                 "messageCode": "E220",
                 "param": "受入"
             }
+        
         # =====================================================
         # DETAIL PARSE
         # =====================================================
@@ -606,68 +536,19 @@ def register_qr(qr_code, htnm, partner_code):
             print("MATERIAL =", material)
             print("SYMBOL =", symbol)
             print("QTY =", quantity)
-            print("========================================")
+            print("========================================")            
 
             # -------------------------------------------------
             # Find matching storage
             # -------------------------------------------------
 
-            debug_sql = f"""
-                SELECT
-                    HTSTORAGE.SERNO,
-                    HTSTORAGE.HTNM,
-                    HTSTORAGE.PARTNERCD,
-                    HTSTORAGE.ITEMCD,
-                    HTSTORAGE.MATERIAL,
-                    HTSTORAGE.SYMBOL,
-                    HTSTORAGE.QTY
-                FROM TYKSFLIB.HTSTORAGE
-                WHERE HTSTORAGE.HTNM = ?
-                AND {partner_condition}
-                AND (
-                        HTSTORAGE.ITEMCD = ?
-                        OR (
-                            HTSTORAGE.MATERIAL = ?
-                            AND HTSTORAGE.SYMBOL = ?
-                        )
-                    )
-            """
-
-            debug_params = [
-                htnm,
-                int(item_cd),
-                material,
-                symbol
-            ]
-
-            print("========================================")
-            print("HT0120 DEBUG HTSTORAGE")
-            print("DEBUG PARAMS =", debug_params)
-            print("========================================")
-
-            cursor.execute(debug_sql, debug_params)
-
-            debug_rows = cursor.fetchall()
-
-            print("HT0120 DEBUG ROW COUNT =", len(debug_rows))
-
-            for debug_row in debug_rows:
-                print("HT0120 DEBUG ROW =", debug_row)
-
-            print("========================================")
-
-            # -------------------------------------------------
-            # Find matching storage
-            # -------------------------------------------------
-
-            sql = f"""
+            sql = """
                 SELECT
                     HTSTORAGE.SERNO
                 FROM TYKSFLIB.HTSTORAGE
                 LEFT JOIN TYKSFLIB.HTSTORADTL
                     ON HTSTORAGE.SERNO = HTSTORADTL.SERNO
                 WHERE HTSTORAGE.HTNM = ?
-                AND {partner_condition}
                 AND (
                         HTSTORAGE.ITEMCD = ?
                         OR (
@@ -687,7 +568,6 @@ def register_qr(qr_code, htnm, partner_code):
                     HTSTORAGE.SERNO
                 FETCH FIRST 1 ROW ONLY
             """
-
             params = [
                 htnm,
                 int(item_cd),
